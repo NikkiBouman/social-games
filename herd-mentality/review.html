@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vragen review — Herd Mentality</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --pop: #2743ff; --pop-ink: #fff; --paper: #f6f2e8; --surface: #fff;
+      --ink: #17140f; --muted: #6f685c; --hair: #ddd4c4;
+      --ok: #2f8f5b; --no: #c02617; --edit: #b8860b;
+      --line: 3px solid var(--ink); --radius: 8px; --shadow: 6px 6px 0 var(--ink);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Hanken Grotesk", system-ui, sans-serif; background: var(--paper); color: var(--ink); }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 16px 16px 60px; }
+
+    .bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .bar h1 { font-size: 1.1rem; font-weight: 800; margin: 0; }
+    .counts { display: flex; gap: 10px; margin-left: auto; font-weight: 700; font-size: 0.9rem; }
+    .counts .c-ok { color: var(--ok); } .counts .c-no { color: var(--no); } .counts .c-ed { color: var(--edit); }
+    .progress { font-weight: 700; color: var(--muted); }
+
+    .btn { font: inherit; font-weight: 700; border: var(--line); border-radius: var(--radius);
+      background: var(--surface); color: var(--ink); padding: 0 16px; min-height: 46px; cursor: pointer;
+      box-shadow: 4px 4px 0 var(--ink); transition: transform .05s, box-shadow .05s; }
+    .btn:active { transform: translate(3px,3px); box-shadow: 1px 1px 0 var(--ink); }
+    .btn.small { min-height: 40px; padding: 0 12px; font-size: .9rem; box-shadow: 3px 3px 0 var(--ink); }
+    .btn.pop { background: var(--pop); color: var(--pop-ink); }
+
+    .card { background: var(--surface); border: var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 26px 22px; min-height: 34vh; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+    .cat { align-self: flex-start; text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; font-weight: 800;
+      color: var(--pop-ink); background: var(--pop); border: var(--line); border-radius: 999px; padding: 4px 12px; }
+    .q { font-size: 1.7rem; font-weight: 800; line-height: 1.2; margin: 0; hyphens: auto; }
+    .verdict-tag { font-weight: 800; font-size: .85rem; }
+    .verdict-tag.keep { color: var(--ok); } .verdict-tag.remove { color: var(--no); } .verdict-tag.edit { color: var(--edit); }
+
+    .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .actions .btn { min-height: 60px; font-size: 1.05rem; }
+    .btn.keep { background: var(--ok); color: #fff; border-color: var(--ink); }
+    .btn.remove { background: var(--no); color: #fff; border-color: var(--ink); }
+    .btn.edit { background: var(--edit); color: #fff; border-color: var(--ink); }
+
+    .nav { display: flex; justify-content: space-between; margin-top: 14px; }
+    .hint { color: var(--muted); font-size: .82rem; text-align: center; margin-top: 14px; }
+    kbd { background: var(--surface); border: 2px solid var(--ink); border-radius: 5px; padding: 0 6px; font-weight: 700; }
+
+    .edit-panel { margin-top: 16px; display: none; }
+    .edit-panel.show { display: block; }
+    .edit-panel label { display: block; font-weight: 700; margin: 10px 0 6px; }
+    .edit-panel textarea, .edit-panel input {
+      width: 100%; font: inherit; border: var(--line); border-radius: var(--radius); padding: 10px; }
+    .edit-panel textarea { min-height: 76px; resize: vertical; }
+    .edit-row { display: flex; gap: 10px; margin-top: 12px; }
+
+    dialog { border: var(--line); border-radius: var(--radius); box-shadow: var(--shadow); max-width: 620px; width: 92%; padding: 22px; }
+    dialog::backdrop { background: rgba(23,20,15,.55); }
+    dialog h2 { margin: 0 0 10px; }
+    dialog textarea { width: 100%; min-height: 230px; font-family: ui-monospace, monospace; font-size: .8rem;
+      border: var(--line); border-radius: var(--radius); padding: 10px; }
+    .dialog-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .done { text-align: center; padding: 30px 10px; }
+    .done h2 { font-size: 1.4rem; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="bar">
+      <h1>🐄 Vragen review</h1>
+      <span class="progress" id="progress">…</span>
+      <span class="counts">
+        <span class="c-ok" id="c-ok">✓ 0</span>
+        <span class="c-no" id="c-no">✗ 0</span>
+        <span class="c-ed" id="c-ed">✎ 0</span>
+      </span>
+      <button class="btn small" id="export-btn">Exporteer</button>
+    </div>
+    <div id="app"></div>
+  </main>
+
+  <dialog id="export-dialog">
+    <h2>Resultaat</h2>
+    <p style="margin:.2em 0 .8em;color:var(--muted)">Kopieer dit en plak het in de chat, dan verwerk ik je keuzes. (Of download.)</p>
+    <textarea id="export-text" readonly></textarea>
+    <div class="dialog-row">
+      <button class="btn pop" id="copy-btn">Kopieer</button>
+      <button class="btn" id="download-btn">Download</button>
+      <button class="btn" id="reset-btn">Wis mijn oordelen</button>
+      <button class="btn" id="close-btn" style="margin-left:auto">Sluiten</button>
+    </div>
+  </dialog>
+
+  <script>
+    const STORAGE = "review:herd";
+    const app = document.getElementById("app");
+    let items = [];      // { set, setNaam, text }
+    let verdicts = {};   // key -> { verdict, newText?, comment? }
+    let idx = 0;
+    let editing = false;
+
+    const keyOf = (it) => it.set + "::" + it.text;
+
+    function loadState() {
+      try {
+        const s = JSON.parse(localStorage.getItem(STORAGE) || "{}");
+        verdicts = s.verdicts || {};
+        idx = s.idx || 0;
+      } catch { verdicts = {}; idx = 0; }
+    }
+    function saveState() {
+      localStorage.setItem(STORAGE, JSON.stringify({ verdicts, idx }));
+    }
+
+    async function loadItems() {
+      const sets = await fetch("sets.json").then(r => r.json());
+      for (const s of sets) {
+        const file = await fetch(s.bestand).then(r => r.json());
+        for (const text of file.vragen) items.push({ set: s.id, setNaam: s.naam, text });
+      }
+    }
+
+    function counts() {
+      let ok = 0, no = 0, ed = 0;
+      for (const v of Object.values(verdicts)) {
+        if (v.verdict === "keep") ok++;
+        else if (v.verdict === "remove") no++;
+        else if (v.verdict === "edit") ed++;
+      }
+      return { ok, no, ed };
+    }
+
+    function setVerdict(v) {
+      const it = items[idx];
+      if (v === null) delete verdicts[keyOf(it)];
+      else verdicts[keyOf(it)] = v;
+      saveState();
+    }
+
+    function go(delta) {
+      idx = Math.max(0, Math.min(items.length, idx + delta));
+      editing = false;
+      saveState();
+      render();
+    }
+
+    function judge(verdict) {
+      setVerdict({ verdict });
+      go(1);
+    }
+
+    function render() {
+      const { ok, no, ed } = counts();
+      document.getElementById("c-ok").textContent = "✓ " + ok;
+      document.getElementById("c-no").textContent = "✗ " + no;
+      document.getElementById("c-ed").textContent = "✎ " + ed;
+
+      if (idx >= items.length) return renderDone();
+
+      document.getElementById("progress").textContent = (idx + 1) + " / " + items.length;
+      const it = items[idx];
+      const cur = verdicts[keyOf(it)];
+      const tag = cur ? `<span class="verdict-tag ${cur.verdict}">${
+        cur.verdict === "keep" ? "✓ goed" : cur.verdict === "remove" ? "✗ weg" : "✎ aangepast"
+      }</span>` : "";
+
+      app.innerHTML = `
+        <div class="card">
+          <span class="cat">${escapeHtml(it.setNaam)}</span>
+          <p class="q">${escapeHtml(it.text)}</p>
+          ${tag}
+          ${cur && cur.verdict === "edit" && cur.newText && cur.newText !== it.text
+            ? `<p style="color:var(--edit);margin:0"><strong>Nieuw:</strong> ${escapeHtml(cur.newText)}</p>` : ""}
+          ${cur && cur.comment ? `<p style="color:var(--muted);margin:0"><em>${escapeHtml(cur.comment)}</em></p>` : ""}
+        </div>
+
+        <div class="actions">
+          <button class="btn keep" data-act="keep">JA — goed <small>(J)</small></button>
+          <button class="btn remove" data-act="remove">NEE — weg <small>(N)</small></button>
+          <button class="btn edit" data-act="edit">PAS AAN <small>(P)</small></button>
+        </div>
+
+        <div class="edit-panel" id="edit-panel">
+          <label>Aangepaste vraag</label>
+          <textarea id="edit-text">${escapeHtml(cur && cur.newText ? cur.newText : it.text)}</textarea>
+          <label>Opmerking (optioneel)</label>
+          <input id="edit-comment" type="text" value="${escapeHtml(cur && cur.comment ? cur.comment : "")}" placeholder="Wat moet er anders?">
+          <div class="edit-row">
+            <button class="btn pop" id="edit-save">Opslaan &amp; volgende</button>
+            <button class="btn" id="edit-cancel">Annuleer</button>
+          </div>
+        </div>
+
+        <div class="nav">
+          <button class="btn small" data-act="prev">← Vorige</button>
+          <button class="btn small" data-act="next">Overslaan →</button>
+        </div>
+        <p class="hint">Sneltoetsen: <kbd>J</kbd> goed · <kbd>N</kbd> weg · <kbd>P</kbd> aanpassen · <kbd>←</kbd>/<kbd>→</kbd> bladeren</p>
+      `;
+
+      app.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => {
+        const a = b.dataset.act;
+        if (a === "keep") judge("keep");
+        else if (a === "remove") judge("remove");
+        else if (a === "edit") openEdit();
+        else if (a === "prev") go(-1);
+        else if (a === "next") go(1);
+      }));
+      if (editing) openEdit();
+    }
+
+    function openEdit() {
+      editing = true;
+      const panel = document.getElementById("edit-panel");
+      panel.classList.add("show");
+      const ta = document.getElementById("edit-text");
+      ta.focus();
+      document.getElementById("edit-save").addEventListener("click", () => {
+        const it = items[idx];
+        const newText = document.getElementById("edit-text").value.trim();
+        const comment = document.getElementById("edit-comment").value.trim();
+        setVerdict({ verdict: "edit", newText, comment });
+        go(1);
+      });
+      document.getElementById("edit-cancel").addEventListener("click", () => { editing = false; render(); });
+    }
+
+    function renderDone() {
+      document.getElementById("progress").textContent = items.length + " / " + items.length;
+      const { ok, no, ed } = counts();
+      app.innerHTML = `
+        <div class="card done">
+          <h2>Klaar! 🎉</h2>
+          <p>${ok} goed · ${no} weg · ${ed} aangepast · ${items.length - ok - no - ed} onbeoordeeld</p>
+          <div class="dialog-row" style="justify-content:center">
+            <button class="btn pop" id="done-export">Exporteer resultaat</button>
+            <button class="btn" id="done-back">← Terug</button>
+          </div>
+        </div>`;
+      document.getElementById("done-export").addEventListener("click", showExport);
+      document.getElementById("done-back").addEventListener("click", () => go(-1));
+    }
+
+    function buildResult() {
+      const results = items.map(it => {
+        const v = verdicts[keyOf(it)];
+        if (!v) return { set: it.set, original: it.text, verdict: "unrated" };
+        const row = { set: it.set, original: it.text, verdict: v.verdict };
+        if (v.verdict === "edit") { row.newText = v.newText || it.text; if (v.comment) row.comment = v.comment; }
+        else if (v.comment) row.comment = v.comment;
+        return row;
+      });
+      return { game: "herd-mentality", generatedAt: new Date().toISOString(), total: items.length, results };
+    }
+
+    function showExport() {
+      const dlg = document.getElementById("export-dialog");
+      document.getElementById("export-text").value = JSON.stringify(buildResult(), null, 2);
+      dlg.showModal();
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    // export dialog buttons
+    document.getElementById("export-btn").addEventListener("click", showExport);
+    document.getElementById("close-btn").addEventListener("click", () => document.getElementById("export-dialog").close());
+    document.getElementById("copy-btn").addEventListener("click", async () => {
+      const t = document.getElementById("export-text");
+      try { await navigator.clipboard.writeText(t.value); document.getElementById("copy-btn").textContent = "Gekopieerd!"; }
+      catch { t.select(); document.execCommand("copy"); }
+    });
+    document.getElementById("download-btn").addEventListener("click", () => {
+      const blob = new Blob([document.getElementById("export-text").value], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "review-herd-mentality.json"; a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    document.getElementById("reset-btn").addEventListener("click", () => {
+      if (!confirm("Al je oordelen wissen?")) return;
+      verdicts = {}; idx = 0; saveState();
+      document.getElementById("export-dialog").close(); render();
+    });
+
+    // keyboard shortcuts
+    document.addEventListener("keydown", (e) => {
+      if (editing || document.getElementById("export-dialog").open) return;
+      if (idx >= items.length) return;
+      const k = e.key.toLowerCase();
+      if (k === "j") judge("keep");
+      else if (k === "n") judge("remove");
+      else if (k === "p") openEdit();
+      else if (e.key === "ArrowRight") go(1);
+      else if (e.key === "ArrowLeft") go(-1);
+    });
+
+    (async function boot() {
+      try { await loadItems(); }
+      catch { app.innerHTML = `<div class="card"><p class="q">Kon de vragen niet laden. Draai je dit via de server (niet als bestand)?</p></div>`; return; }
+      loadState();
+      render();
+    })();
+  </script>
+</body>
+</html>
