@@ -62,3 +62,21 @@ h1 { font-size: 1.6rem; margin: 0 0 4px; }
 .set-item small { margin-left: auto; color: var(--muted); }
 .btn-block { display: flex; width: 100%; }
 .error { color: #b3261e; }
+
+/* ---- Herd Mentality: playing ---- */
+.question-card { background: var(--accent); color: var(--accent-ink); border-radius: var(--radius); padding: 24px; text-align: center; margin-bottom: 16px; }
+.q-set { text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; font-weight: 700; }
+.q-text { font-size: 1.5rem; font-weight: 700; margin: 10px 0; }
+.q-progress { opacity: 0.85; }
+.herd-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 8px 0 16px; }
+.herd-btn { min-height: 52px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--surface); font-size: 1rem; font-weight: 600; cursor: pointer; }
+.herd-btn.in-herd { border-color: var(--accent); background: #e8f5ee; }
+.actions { display: flex; gap: 10px; margin-bottom: 20px; }
+.actions .btn { flex: 1; }
+.scoreboard ul { list-style: none; padding: 0; margin: 8px 0; }
+.scoreboard li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
+.scoreboard li.has-pink { color: var(--muted); }
+.pink-tag { color: var(--pink); font-size: 0.8rem; margin-right: 8px; }
+.override { margin: 8px 0 16px; }
+.override summary { cursor: pointer; color: var(--muted); }
+.override-body { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }

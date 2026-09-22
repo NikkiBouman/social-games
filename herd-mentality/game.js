@@ -146,9 +146,114 @@ function renderSetup() {
 }
 
 function renderPlaying() {
-  app.innerHTML = `<p>Spel gestart — spelscherm volgt (Taak 5).</p>
-    <button id="tmp-new" class="btn">Nieuw spel</button>`;
-  app.querySelector("#tmp-new").addEventListener("click", newGame);
+  if (state.cardIndex >= state.deck.length) return renderDeckEmpty();
+
+  const card = state.deck[state.cardIndex];
+  const inHerd = new Set(state.herdSelection);
+  app.innerHTML = `
+    <section class="question-card">
+      <small class="q-set">${escapeHtml(card.setNaam)}</small>
+      <p class="q-text">${escapeHtml(card.text)}</p>
+      <small class="q-progress">Kaart ${state.cardIndex + 1} van ${state.deck.length}</small>
+    </section>
+
+    <p class="hint">Tik iedereen aan die in de <strong>kudde</strong> zit (kreeg een koe):</p>
+    <div class="herd-grid">
+      ${state.players.map((p) => `
+        <button class="herd-btn ${inHerd.has(p.id) ? "in-herd" : ""}" data-herd="${p.id}">
+          ${escapeHtml(p.name)} ${inHerd.has(p.id) ? "🐄" : ""}
+        </button>`).join("")}
+    </div>
+
+    <div class="actions">
+      <button id="skip" class="btn">Sla over</button>
+      <button id="next" class="btn btn-primary">Volgende kaart</button>
+    </div>
+
+    ${renderScoreboard()}
+
+    <details class="override">
+      <summary>Roze koe handmatig toewijzen</summary>
+      <div class="override-body">
+        ${state.players.map((p) => `<button class="btn" data-pink="${p.id}">🩷 ${escapeHtml(p.name)}</button>`).join("")}
+        <button class="btn" data-pink="__none">Niemand</button>
+      </div>
+    </details>
+
+    <button id="new" class="link-btn">Nieuw spel</button>
+  `;
+
+  app.querySelectorAll("[data-herd]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const id = b.dataset.herd;
+      state.herdSelection = inHerd.has(id)
+        ? state.herdSelection.filter((x) => x !== id)
+        : [...state.herdSelection, id];
+      save(); renderPlaying();
+    }));
+  app.querySelector("#next").addEventListener("click", nextCard);
+  app.querySelector("#skip").addEventListener("click", skipCard);
+  app.querySelector("#new").addEventListener("click", newGame);
+  app.querySelectorAll("[data-pink]").forEach((b) =>
+    b.addEventListener("click", () => {
+      state.pinkCowHolderId = b.dataset.pink === "__none" ? null : b.dataset.pink;
+      save(); renderPlaying();
+    }));
+}
+
+function renderScoreboard() {
+  const sorted = [...state.players].sort((a, b) => b.cows - a.cows);
+  return `
+    <section class="scoreboard">
+      <h2>Stand</h2>
+      <ul>
+        ${sorted.map((p) => `
+          <li class="${p.id === state.pinkCowHolderId ? "has-pink" : ""}">
+            <span>${escapeHtml(p.name)}</span>
+            <span class="score">
+              ${p.id === state.pinkCowHolderId ? '<span class="pink-tag">🩷 kan niet winnen</span>' : ""}
+              <strong>${p.cows} 🐄</strong>
+            </span>
+          </li>`).join("")}
+      </ul>
+      <small class="hint">Winst bij ${state.target} 🐄</small>
+    </section>`;
+}
+
+function renderDeckEmpty() {
+  app.innerHTML = `
+    <section class="question-card"><p class="q-text">Alle kaarten gehad! 🎉</p></section>
+    ${renderScoreboard()}
+    <div class="actions">
+      <button id="reshuffle" class="btn btn-primary">Opnieuw husselen</button>
+      <button id="new" class="btn">Nieuw spel</button>
+    </div>`;
+  app.querySelector("#reshuffle").addEventListener("click", reshuffle);
+  app.querySelector("#new").addEventListener("click", newGame);
+}
+
+function nextCard() {
+  state.players = awardCows(state.players, state.herdSelection);
+  state.pinkCowHolderId = reassignPinkCow(state.players, state.herdSelection, state.pinkCowHolderId);
+  state.herdSelection = [];
+  state.cardIndex += 1;
+  state.winnerId = determineWinner(state.players, state.target, state.pinkCowHolderId);
+  save();
+  render(); // Task 6: render() shows the win overlay when there's a new winner
+}
+
+function skipCard() {
+  state.herdSelection = [];
+  state.cardIndex += 1;
+  save();
+  render();
+}
+
+function reshuffle() {
+  state.deck = buildDeck(sets, state.selectedSetIds);
+  state.cardIndex = 0;
+  save();
+  render();
 }
 
 function escapeHtml(s) {
