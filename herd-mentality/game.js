@@ -73,6 +73,7 @@ function newGame() {
 }
 
 function render() {
+  document.body.classList.toggle("is-playing", state.phase === "playing");
   if (state.phase === "setup") return renderSetup();
   renderPlaying();
   if (state.winnerId && state.winnerId !== state.acknowledgedWinnerId) {

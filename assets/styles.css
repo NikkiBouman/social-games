@@ -64,6 +64,9 @@ h1 { font-size: 1.6rem; margin: 0 0 4px; }
 .error { color: #b3261e; }
 
 /* ---- Herd Mentality: playing ---- */
+/* During play the page chrome is hidden so only the card dominates. */
+body.is-playing #page-head { display: none; }
+body.is-playing .wrap { padding-top: 12px; }
 .stage { display: flex; flex-direction: column; gap: 16px; }
 
 /* Card face: the question dominates; tapping it does nothing */
