@@ -125,6 +125,14 @@ body.is-playing .wrap { padding-top: 14px; }
 .arrow-btn:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 var(--ink); animation: none; }
 @keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
 
+/* Portrait: let the text run full width and float the arrow bottom-right of the card.
+   The reserved bottom padding keeps the auto-fitted text clear of the arrow. */
+@media (orientation: portrait) {
+  .card-face { position: relative; padding-bottom: 100px; }
+  .q-row { display: block; }
+  .arrow-btn { position: absolute; right: 18px; bottom: 18px; }
+}
+
 .stage-sub { display: flex; align-items: center; justify-content: space-between; }
 .skip-btn {
   display: inline-flex; align-items: center; gap: 8px;
