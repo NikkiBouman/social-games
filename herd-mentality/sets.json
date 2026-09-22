@@ -5,5 +5,6 @@
   { "id": "geek", "naam": "Geek", "emoji": "🎬", "bestand": "questions/geek.json" },
   { "id": "dieren", "naam": "Dieren", "emoji": "🐾", "bestand": "questions/dieren.json" },
   { "id": "geschiedenis", "naam": "Geschiedenis", "emoji": "📜", "bestand": "questions/geschiedenis.json" },
+  { "id": "relaties", "naam": "Relaties", "emoji": "❤️", "bestand": "questions/relaties.json" },
   { "id": "18plus", "naam": "18+", "emoji": "🔞", "bestand": "questions/18plus.json" }
 ]
