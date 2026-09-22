@@ -5,6 +5,9 @@
   { "id": "geek", "naam": "Geek", "emoji": "🎬", "bestand": "questions/geek.json" },
   { "id": "dieren", "naam": "Dieren", "emoji": "🐾", "bestand": "questions/dieren.json" },
   { "id": "geschiedenis", "naam": "Geschiedenis", "emoji": "📜", "bestand": "questions/geschiedenis.json" },
+  { "id": "muziek", "naam": "Muziek", "emoji": "🎵", "bestand": "questions/muziek.json" },
+  { "id": "heb-je-liever", "naam": "Heb je liever", "emoji": "🤔", "bestand": "questions/heb-je-liever.json" },
+  { "id": "rpg", "naam": "RPG", "emoji": "🎲", "bestand": "questions/rpg.json" },
   { "id": "relaties", "naam": "Relaties", "emoji": "❤️", "bestand": "questions/relaties.json" },
   { "id": "18plus", "naam": "18+", "emoji": "🔞", "bestand": "questions/18plus.json" }
 ]

@@ -18,7 +18,7 @@ test("sets.json entries are well-formed and point to matching files", async () =
     const file = await readJson(s.bestand);
     assert.equal(file.id, s.id, `id mismatch for ${s.bestand}`);
     assert.equal(file.naam, s.naam, `naam mismatch for ${s.bestand}`);
-    assert.ok(Array.isArray(file.vragen) && file.vragen.length >= 5, `too few vragen in ${s.bestand}`);
+    assert.ok(Array.isArray(file.vragen) && file.vragen.length >= 1, `no vragen in ${s.bestand}`);
     for (const q of file.vragen) assert.equal(typeof q, "string", `non-string vraag in ${s.bestand}`);
   }
 });

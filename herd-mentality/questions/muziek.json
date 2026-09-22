@@ -1,0 +1,9 @@
+{
+  "id": "muziek",
+  "naam": "Muziek",
+  "vragen": [
+    "Noem een blinde artiest.",
+    "Noem een overrated artiest.",
+    "Welk lied hoort bovenaan de Top 2000?"
+  ]
+}
