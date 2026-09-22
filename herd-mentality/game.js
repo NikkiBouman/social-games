@@ -183,6 +183,21 @@ function renderCardView() {
   app.querySelector("#board").addEventListener("click", openScoreboard);
   app.querySelector("#settings").addEventListener("click", openSettings);
   app.querySelector("#skip").addEventListener("click", skipCard);
+  fitQuestion();
+}
+
+// Shrink the question until it fits inside the (fixed-height) card, so it is
+// always fully visible regardless of length. Runs on render, resize and font load.
+function fitQuestion() {
+  const face = app.querySelector(".card-face");
+  const q = face && face.querySelector(".q-text");
+  if (!q) return;
+  let size = 48; // px, readable maximum
+  q.style.fontSize = size + "px";
+  while (size > 18 && face.scrollHeight > face.clientHeight) {
+    size -= 2;
+    q.style.fontSize = size + "px";
+  }
 }
 
 // Herd view: only the players, as toggles. Confirm advances to the next card.
@@ -384,4 +399,9 @@ function escapeHtml(s) {
   }
   load(); // restore in-progress game if present
   render();
+
+  // keep the question fitted after the webfont loads and on resize/orientation change
+  const refit = () => { if (state.phase === "playing" && state.view === "card") fitQuestion(); };
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+  window.addEventListener("resize", refit);
 })();
