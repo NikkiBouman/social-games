@@ -72,16 +72,32 @@ neerkomt op een kaart erbij.
 - Sets aanvinken (checkboxes, meerdere tegelijk), minimaal 1 vereist.
 - **Start spel**: actief bij **≥ 3 spelers** én ≥ 1 set.
 
-### 2. Spel (per kaartje)
-- De vraag groot in beeld; klein label met de set-categorie.
-- Spelerslijst; tik een speler aan om 'm **in de herd** te zetten (krijgt deze ronde 🐄).
-  Nogmaals tikken haalt 'm er weer uit.
-- Knoppen:
-  - **Sla over** → volgend kaartje, geen score, roze koe onveranderd.
-  - **Volgende kaart** → score toepassen (zie regels), dan volgend kaartje.
-- Live scorebord: koeien per speler, wie de 🩷 roze koe heeft, en markering
-  "kan niet winnen" bij de roze-koe-houder.
-- Handmatige override: "geef roze koe aan …" voor randgevallen die de auto-regel niet dekt.
+### 2. Spel (per kaartje) — mobiel plat op tafel
+
+Het spel-scherm heeft twee sub-views (`state.view`), zodat de telefoon plat op tafel
+kan liggen en iedereen meeleest.
+
+**Kaart-view (`view = "card"`)** — de standaard.
+- Alleen de vraag, groot en centraal (`clamp`-lettergrootte, vult het scherm), met klein
+  categorie-label. **Tikken op de kaart zelf doet niets** — bewust, zodat je niet per
+  ongeluk doorklikt als de telefoon op tafel ligt of het scherm even uitvalt.
+- Kleine bediening onderaan: **📊 spelersbord** (opent popup), een voortgangsteller
+  (`3 / 30`), en een **→**-knop die naar de herd-view gaat. Subtiel: **Sla over** en
+  **Nieuw spel**.
+
+**Herd-view (`view = "herd"`)** — na de →.
+- Toont **alleen de spelers** als grote toggle-knoppen; tik aan wie in de kudde zit
+  (krijgt 🐄), nogmaals tikken haalt 'm eruit.
+- **Volgende kaart →** past de score toe (zie regels) en toont het volgende kaart-view.
+- **← Kaart** gaat terug zonder te scoren; de herd-selectie blijft bewaard.
+
+**Spelersbord (popup)** — oproepbaar vanuit beide views.
+- Koeien per speler (aflopend), wie de 🩷 roze koe heeft, en "🩷 = kan niet winnen".
+- Bevat de **handmatige roze-koe-override** ("geef roze koe aan … / Niemand") voor
+  randgevallen die de auto-regel niet dekt. Zo blijft de herd-view puur spelers.
+
+Skip/Volgende raken de score en roze koe aan zoals in §Scorelogica; `view` keert bij elke
+kaartwissel terug naar `"card"`.
 
 ### 3. Winst
 - Verschijnt (als overlay boven het spel-scherm) zodra na een ronde een nieuwe winnaar wordt
@@ -142,6 +158,7 @@ state = {
   selectedSetIds: [ string ],
   deck: [ { text, setNaam } ],       // geschud bij start; volledige lijst
   cardIndex: number,                 // index van huidige kaart in deck
+  view: 'card' | 'herd',             // sub-view tijdens spelen
   herdSelection: [ playerId ],       // aangetikt voor de huidige kaart
   winnerId: string | null,           // huidige bepaalde winnaar (of null)
   acknowledgedWinnerId: string | null, // winnaar waarvoor "Toch verder spelen" is gekozen

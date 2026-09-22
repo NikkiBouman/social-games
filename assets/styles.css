@@ -64,20 +64,47 @@ h1 { font-size: 1.6rem; margin: 0 0 4px; }
 .error { color: #b3261e; }
 
 /* ---- Herd Mentality: playing ---- */
-.question-card { background: var(--accent); color: var(--accent-ink); border-radius: var(--radius); padding: 24px; text-align: center; margin-bottom: 16px; }
-.q-set { text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; font-weight: 700; }
-.q-text { font-size: 1.5rem; font-weight: 700; margin: 10px 0; }
-.q-progress { opacity: 0.85; }
-.herd-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 8px 0 16px; }
-.herd-btn { min-height: 52px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--surface); font-size: 1rem; font-weight: 600; cursor: pointer; }
+.stage { display: flex; flex-direction: column; gap: 16px; }
+
+/* Card face: the question dominates; tapping it does nothing */
+.card-face {
+  background: var(--accent); color: var(--accent-ink);
+  border-radius: var(--radius);
+  min-height: 62vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 28px 22px; gap: 16px;
+}
+.q-set { text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; opacity: 0.85; font-size: 0.85rem; }
+.q-text { font-size: clamp(1.9rem, 7.5vw, 3rem); font-weight: 800; margin: 0; line-height: 1.18; }
+
+.stage-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.round-btn {
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface);
+  font-size: 1.5rem; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.round-btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.q-progress { color: var(--muted); font-weight: 700; }
+.stage-sub { display: flex; justify-content: space-between; }
+
+/* Herd view: only players */
+.herd-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.herd-head .hint { margin: 0; }
+.herd-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.herd-btn { min-height: 72px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--surface); font-size: 1.15rem; font-weight: 700; cursor: pointer; }
 .herd-btn.in-herd { border-color: var(--accent); background: #e8f5ee; }
-.actions { display: flex; gap: 10px; margin-bottom: 20px; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .actions .btn { flex: 1; }
-.scoreboard ul { list-style: none; padding: 0; margin: 8px 0; }
-.scoreboard li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
-.scoreboard li.has-pink { color: var(--muted); }
-.pink-tag { color: var(--pink); font-size: 0.8rem; margin-right: 8px; }
-.override { margin: 8px 0 16px; }
+
+/* Scoreboard popup */
+.board-card { max-width: 420px; text-align: left; }
+.board-card h2 { margin: 0 0 12px; text-align: center; }
+.scoreboard-list { list-style: none; padding: 0; margin: 0 0 12px; }
+.scoreboard-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
+.scoreboard-list li.has-pink { color: var(--muted); }
+.override { margin: 10px 0; }
 .override summary { cursor: pointer; color: var(--muted); }
 .override-body { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 

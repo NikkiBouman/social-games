@@ -16,6 +16,7 @@ function freshState() {
     selectedSetIds: [],
     deck: [],               // { text, setNaam }
     cardIndex: 0,
+    view: "card",           // sub-view while playing: "card" | "herd"
     herdSelection: [],      // player ids toggled for the current card
     winnerId: null,
     acknowledgedWinnerId: null,
@@ -54,6 +55,7 @@ function startGame() {
   if (state.players.length < 3 || state.selectedSetIds.length < 1) return;
   state.deck = buildDeck(sets, state.selectedSetIds);
   state.cardIndex = 0;
+  state.view = "card";
   state.herdSelection = [];
   state.pinkCowHolderId = null;
   state.winnerId = null;
@@ -150,88 +152,117 @@ function renderSetup() {
 
 function renderPlaying() {
   if (state.cardIndex >= state.deck.length) return renderDeckEmpty();
+  if (state.view === "herd") return renderHerdView();
+  return renderCardView();
+}
 
+// Card view: only the question, big. Tapping the card face does nothing
+// (deliberate — prevents accidental advance when the phone is on the table).
+function renderCardView() {
   const card = state.deck[state.cardIndex];
+  app.innerHTML = `
+    <section class="stage">
+      <div class="card-face">
+        <small class="q-set">${escapeHtml(card.setNaam)}</small>
+        <p class="q-text">${escapeHtml(card.text)}</p>
+      </div>
+      <div class="stage-bar">
+        <button id="board" class="round-btn" aria-label="Spelersbord">📊</button>
+        <span class="q-progress">${state.cardIndex + 1} / ${state.deck.length}</span>
+        <button id="to-herd" class="round-btn primary" aria-label="Score invullen">→</button>
+      </div>
+      <div class="stage-sub">
+        <button id="skip" class="link-btn">Sla over</button>
+        <button id="new" class="link-btn">Nieuw spel</button>
+      </div>
+    </section>`;
+  app.querySelector("#to-herd").addEventListener("click", () => { state.view = "herd"; save(); render(); });
+  app.querySelector("#board").addEventListener("click", openScoreboard);
+  app.querySelector("#skip").addEventListener("click", skipCard);
+  app.querySelector("#new").addEventListener("click", newGame);
+}
+
+// Herd view: only the players, as toggles. Confirm advances to the next card.
+function renderHerdView() {
   const inHerd = new Set(state.herdSelection);
   app.innerHTML = `
-    <section class="question-card">
-      <small class="q-set">${escapeHtml(card.setNaam)}</small>
-      <p class="q-text">${escapeHtml(card.text)}</p>
-      <small class="q-progress">Kaart ${state.cardIndex + 1} van ${state.deck.length}</small>
-    </section>
-
-    <p class="hint">Tik iedereen aan die in de <strong>kudde</strong> zit (kreeg een koe):</p>
-    <div class="herd-grid">
-      ${state.players.map((p) => `
-        <button class="herd-btn ${inHerd.has(p.id) ? "in-herd" : ""}" data-herd="${p.id}">
-          ${escapeHtml(p.name)} ${inHerd.has(p.id) ? "🐄" : ""}
-        </button>`).join("")}
-    </div>
-
-    <div class="actions">
-      <button id="skip" class="btn">Sla over</button>
-      <button id="next" class="btn btn-primary">Volgende kaart</button>
-    </div>
-
-    ${renderScoreboard()}
-
-    <details class="override">
-      <summary>Roze koe handmatig toewijzen</summary>
-      <div class="override-body">
-        ${state.players.map((p) => `<button class="btn" data-pink="${p.id}">🩷 ${escapeHtml(p.name)}</button>`).join("")}
-        <button class="btn" data-pink="__none">Niemand</button>
+    <section class="stage">
+      <div class="herd-head">
+        <button id="back" class="link-btn">← Kaart</button>
+        <span class="hint">Tik wie in de kudde zit</span>
+        <button id="board" class="link-btn">Spelersbord</button>
       </div>
-    </details>
-
-    <button id="new" class="link-btn">Nieuw spel</button>
-  `;
-
+      <div class="herd-grid">
+        ${state.players.map((p) => `
+          <button class="herd-btn ${inHerd.has(p.id) ? "in-herd" : ""}" data-herd="${p.id}">
+            ${escapeHtml(p.name)}${inHerd.has(p.id) ? " 🐄" : ""}
+          </button>`).join("")}
+      </div>
+      <button id="next" class="btn btn-primary btn-block">Volgende kaart →</button>
+    </section>`;
   app.querySelectorAll("[data-herd]").forEach((b) =>
     b.addEventListener("click", () => {
       const id = b.dataset.herd;
       state.herdSelection = inHerd.has(id)
         ? state.herdSelection.filter((x) => x !== id)
         : [...state.herdSelection, id];
-      save(); renderPlaying();
+      save(); renderHerdView();
     }));
+  app.querySelector("#back").addEventListener("click", () => { state.view = "card"; save(); render(); });
   app.querySelector("#next").addEventListener("click", nextCard);
-  app.querySelector("#skip").addEventListener("click", skipCard);
-  app.querySelector("#new").addEventListener("click", newGame);
-  app.querySelectorAll("[data-pink]").forEach((b) =>
-    b.addEventListener("click", () => {
-      state.pinkCowHolderId = b.dataset.pink === "__none" ? null : b.dataset.pink;
-      save(); renderPlaying();
-    }));
+  app.querySelector("#board").addEventListener("click", openScoreboard);
 }
 
-function renderScoreboard() {
+// Scoreboard popup: cow counts + pink-cow holder, plus manual pink-cow override.
+function openScoreboard() {
   const sorted = [...state.players].sort((a, b) => b.cows - a.cows);
-  return `
-    <section class="scoreboard">
-      <h2>Stand</h2>
-      <ul>
+  const modal = document.createElement("div");
+  modal.className = "overlay";
+  modal.innerHTML = `
+    <div class="overlay-card board-card">
+      <h2>Spelersbord</h2>
+      <ul class="scoreboard-list">
         ${sorted.map((p) => `
           <li class="${p.id === state.pinkCowHolderId ? "has-pink" : ""}">
             <span>${escapeHtml(p.name)}</span>
-            <span class="score">
-              ${p.id === state.pinkCowHolderId ? '<span class="pink-tag">🩷 kan niet winnen</span>' : ""}
-              <strong>${p.cows} 🐄</strong>
-            </span>
+            <span class="score">${p.id === state.pinkCowHolderId ? "🩷 " : ""}<strong>${p.cows} 🐄</strong></span>
           </li>`).join("")}
       </ul>
-      <small class="hint">Winst bij ${state.target} 🐄</small>
-    </section>`;
+      <small class="hint">Winst bij ${state.target} 🐄 · 🩷 = kan niet winnen</small>
+      <details class="override">
+        <summary>Roze koe handmatig toewijzen</summary>
+        <div class="override-body">
+          ${state.players.map((p) => `<button class="btn" data-pink="${p.id}">🩷 ${escapeHtml(p.name)}</button>`).join("")}
+          <button class="btn" data-pink="__none">Niemand</button>
+        </div>
+      </details>
+      <button id="close-board" class="btn btn-primary btn-block">Sluiten</button>
+    </div>`;
+  document.body.appendChild(modal);
+  const close = () => modal.remove();
+  modal.querySelector("#close-board").addEventListener("click", close);
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+  modal.querySelectorAll("[data-pink]").forEach((b) =>
+    b.addEventListener("click", () => {
+      state.pinkCowHolderId = b.dataset.pink === "__none" ? null : b.dataset.pink;
+      save();
+      close();
+      openScoreboard(); // reopen so the updated 🩷 shows immediately
+    }));
 }
 
 function renderDeckEmpty() {
   app.innerHTML = `
-    <section class="question-card"><p class="q-text">Alle kaarten gehad! 🎉</p></section>
-    ${renderScoreboard()}
-    <div class="actions">
-      <button id="reshuffle" class="btn btn-primary">Opnieuw husselen</button>
-      <button id="new" class="btn">Nieuw spel</button>
-    </div>`;
+    <section class="stage">
+      <div class="card-face"><p class="q-text">Alle kaarten gehad! 🎉</p></div>
+      <div class="actions">
+        <button id="reshuffle" class="btn btn-primary">Opnieuw husselen</button>
+        <button id="board" class="btn">Spelersbord</button>
+        <button id="new" class="btn">Nieuw spel</button>
+      </div>
+    </section>`;
   app.querySelector("#reshuffle").addEventListener("click", reshuffle);
+  app.querySelector("#board").addEventListener("click", openScoreboard);
   app.querySelector("#new").addEventListener("click", newGame);
 }
 
@@ -240,14 +271,16 @@ function nextCard() {
   state.pinkCowHolderId = reassignPinkCow(state.players, state.herdSelection, state.pinkCowHolderId);
   state.herdSelection = [];
   state.cardIndex += 1;
+  state.view = "card";
   state.winnerId = determineWinner(state.players, state.target, state.pinkCowHolderId);
   save();
-  render(); // Task 6: render() shows the win overlay when there's a new winner
+  render(); // render() shows the win overlay when there's a new winner
 }
 
 function skipCard() {
   state.herdSelection = [];
   state.cardIndex += 1;
+  state.view = "card";
   save();
   render();
 }
@@ -255,6 +288,7 @@ function skipCard() {
 function reshuffle() {
   state.deck = buildDeck(sets, state.selectedSetIds);
   state.cardIndex = 0;
+  state.view = "card";
   save();
   render();
 }
