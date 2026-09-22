@@ -1,0 +1,7 @@
+[
+  { "id": "algemeen", "naam": "Algemeen", "emoji": "💬", "bestand": "questions/algemeen.json" },
+  { "id": "dieren", "naam": "Dieren", "emoji": "🐾", "bestand": "questions/dieren.json" },
+  { "id": "eten", "naam": "Eten", "emoji": "🍔", "bestand": "questions/eten.json" },
+  { "id": "geschiedenis", "naam": "Geschiedenis", "emoji": "📜", "bestand": "questions/geschiedenis.json" },
+  { "id": "18plus", "naam": "18+", "emoji": "🔞", "bestand": "questions/18plus.json" }
+]
