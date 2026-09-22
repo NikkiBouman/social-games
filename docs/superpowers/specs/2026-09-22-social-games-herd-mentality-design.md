@@ -84,9 +84,13 @@ neerkomt op een kaart erbij.
 - Handmatige override: "geef roze koe aan …" voor randgevallen die de auto-regel niet dekt.
 
 ### 3. Winst
-- Verschijnt zodra na een ronde iemand wint (zie winstcheck).
-- Toont de winnaar + knoppen **Toch verder spelen** (sluit het scherm, spel gaat door) en
-  **Nieuw spel** (terug naar setup, stand gewist).
+- Verschijnt (als overlay boven het spel-scherm) zodra na een ronde een nieuwe winnaar wordt
+  bepaald (zie winstcheck), d.w.z. `winnerId` is gezet én verschilt van `acknowledgedWinnerId`.
+- Toont de winnaar + knoppen:
+  - **Toch verder spelen** → overlay sluiten, `acknowledgedWinnerId = winnerId`, spel gaat
+    door met de huidige stand. Het scherm komt pas terug als er een *andere* speler
+    winnaar wordt.
+  - **Nieuw spel** → terug naar setup, stand gewist.
 
 ## Scorelogica (de kern)
 
@@ -115,9 +119,12 @@ eligible = spelers met cows >= target EN id != pinkCowHolderId
 als eligible leeg is → geen winnaar, doorspelen
 maxEligible = hoogste cows onder eligible
 leaders = eligible met cows == maxEligible
-als leaders.length == 1 → die speler wint
-anders → gelijkspel bovenaan onder de kanshebbers, doorspelen
+als leaders.length == 1 → winnerId = leaders[0].id
+anders → gelijkspel bovenaan onder de kanshebbers, winnerId blijft/​wordt null, doorspelen
 ```
+
+Het win-scherm reageert op `winnerId` t.o.v. `acknowledgedWinnerId` (zie schermen §3):
+alleen een *nieuwe* winnaar opent de overlay opnieuw.
 
 Gevolg (trouw aan de doosregels): de roze-koe-houder kan niet winnen, óók niet als die
 de meeste koeien heeft — die telt niet mee en blokkeert de anderen niet. Halen twee
@@ -136,7 +143,8 @@ state = {
   deck: [ { text, setNaam } ],       // geschud bij start; volledige lijst
   cardIndex: number,                 // index van huidige kaart in deck
   herdSelection: [ playerId ],       // aangetikt voor de huidige kaart
-  winnerId: string | null,
+  winnerId: string | null,           // huidige bepaalde winnaar (of null)
+  acknowledgedWinnerId: string | null, // winnaar waarvoor "Toch verder spelen" is gekozen
 }
 ```
 
