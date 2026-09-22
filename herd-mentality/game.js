@@ -1,0 +1,169 @@
+import { buildDeck, awardCows, reassignPinkCow, determineWinner } from "./logic.js";
+
+const STORAGE_KEY = "social-games:herd-mentality";
+const app = document.getElementById("app");
+
+let sets = [];        // loaded set objects: { id, naam, emoji, vragen }
+let state = freshState();
+
+function freshState() {
+  return {
+    version: 1,
+    phase: "setup",
+    players: [],            // { id, name, cows }
+    target: 8,
+    pinkCowHolderId: null,
+    selectedSetIds: [],
+    deck: [],               // { text, setNaam }
+    cardIndex: 0,
+    herdSelection: [],      // player ids toggled for the current card
+    winnerId: null,
+    acknowledgedWinnerId: null,
+  };
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.version === 1) { state = parsed; return true; }
+  } catch { /* ignore corrupt storage */ }
+  return false;
+}
+
+function newId() {
+  return "p" + Math.random().toString(36).slice(2, 9);
+}
+
+async function loadSets() {
+  const index = await fetch("sets.json").then((r) => r.json());
+  sets = await Promise.all(
+    index.map(async (s) => {
+      const file = await fetch(s.bestand).then((r) => r.json());
+      return { id: s.id, naam: s.naam, emoji: s.emoji, vragen: file.vragen };
+    })
+  );
+}
+
+function startGame() {
+  if (state.players.length < 3 || state.selectedSetIds.length < 1) return;
+  state.deck = buildDeck(sets, state.selectedSetIds);
+  state.cardIndex = 0;
+  state.herdSelection = [];
+  state.pinkCowHolderId = null;
+  state.winnerId = null;
+  state.acknowledgedWinnerId = null;
+  state.phase = "playing";
+  save();
+  render();
+}
+
+function newGame() {
+  localStorage.removeItem(STORAGE_KEY);
+  state = freshState();
+  // keep loaded `sets`; only game state resets
+  render();
+}
+
+function render() {
+  if (state.phase === "setup") return renderSetup();
+  return renderPlaying(); // Task 5 adds the win overlay on top
+}
+
+function renderSetup() {
+  const canStart = state.players.length >= 3 && state.selectedSetIds.length >= 1;
+  app.innerHTML = `
+    <section class="card">
+      <h2>Spelers</h2>
+      <form id="add-player" class="row">
+        <input id="player-name" type="text" placeholder="Naam speler" autocomplete="off" maxlength="24">
+        <button class="btn" type="submit">Toevoegen</button>
+      </form>
+      <ul class="player-list">
+        ${state.players.map((p) => `
+          <li><span>${escapeHtml(p.name)}</span>
+          <button class="link-btn" data-remove="${p.id}">verwijder</button></li>`).join("")}
+      </ul>
+      <p class="hint">${state.players.length < 3 ? `Nog minstens ${3 - state.players.length} speler(s) nodig.` : `${state.players.length} spelers.`}</p>
+    </section>
+
+    <section class="card">
+      <h2>Winst bij</h2>
+      <div class="row">
+        <button class="btn" data-target-step="-1">−</button>
+        <output id="target-out">${state.target} 🐄</output>
+        <button class="btn" data-target-step="1">+</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Vragensets</h2>
+      <div class="set-list">
+        ${sets.map((s) => `
+          <label class="set-item">
+            <input type="checkbox" data-set="${s.id}" ${state.selectedSetIds.includes(s.id) ? "checked" : ""}>
+            <span>${s.emoji} ${escapeHtml(s.naam)}</span>
+            <small>${s.vragen.length} vragen</small>
+          </label>`).join("")}
+      </div>
+    </section>
+
+    <button id="start" class="btn btn-primary btn-block" ${canStart ? "" : "disabled"}>Start spel</button>
+  `;
+
+  app.querySelector("#add-player").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = app.querySelector("#player-name");
+    const name = input.value.trim();
+    if (!name) return;
+    state.players.push({ id: newId(), name, cows: 0 });
+    save(); renderSetup();
+  });
+  app.querySelectorAll("[data-remove]").forEach((b) =>
+    b.addEventListener("click", () => {
+      state.players = state.players.filter((p) => p.id !== b.dataset.remove);
+      save(); renderSetup();
+    }));
+  app.querySelectorAll("[data-target-step]").forEach((b) =>
+    b.addEventListener("click", () => {
+      state.target = Math.max(1, state.target + Number(b.dataset.targetStep));
+      save(); renderSetup();
+    }));
+  app.querySelectorAll("[data-set]").forEach((c) =>
+    c.addEventListener("change", () => {
+      const id = c.dataset.set;
+      state.selectedSetIds = c.checked
+        ? [...state.selectedSetIds, id]
+        : state.selectedSetIds.filter((x) => x !== id);
+      save(); renderSetup();
+    }));
+  app.querySelector("#start").addEventListener("click", startGame);
+}
+
+function renderPlaying() {
+  app.innerHTML = `<p>Spel gestart — spelscherm volgt (Taak 5).</p>
+    <button id="tmp-new" class="btn">Nieuw spel</button>`;
+  app.querySelector("#tmp-new").addEventListener("click", newGame);
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ---- boot ----
+(async function boot() {
+  try {
+    await loadSets();
+  } catch (e) {
+    app.innerHTML = `<p class="error">Kon de vragen niet laden. Draai je de site via een server (niet als bestand)?</p>`;
+    return;
+  }
+  load(); // restore in-progress game if present
+  render();
+})();
