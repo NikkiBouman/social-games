@@ -1,0 +1,8 @@
+{
+  "id": "sport",
+  "naam": "Sport",
+  "vragen": [
+    "Wat is de beste sport om naar te kijken?",
+    "Wie is de beste voetballer?"
+  ]
+}
