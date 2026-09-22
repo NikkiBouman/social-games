@@ -110,7 +110,7 @@ body.is-playing .wrap { padding-top: 14px; }
 }
 .q-set { text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.8rem; color: var(--pop); font-weight: 700; }
 .q-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 0; }
-.q-text { font-size: 2rem; font-weight: 800; line-height: 1.14; letter-spacing: -0.01em; margin: 0; overflow-wrap: anywhere; }
+.q-text { font-size: 2rem; font-weight: 800; line-height: 1.14; letter-spacing: -0.01em; margin: 0; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; }
 
 /* the big "fill in score" arrow, next to the text on one line */
 .arrow-btn {
