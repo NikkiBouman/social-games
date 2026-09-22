@@ -80,3 +80,9 @@ h1 { font-size: 1.6rem; margin: 0 0 4px; }
 .override { margin: 8px 0 16px; }
 .override summary { cursor: pointer; color: var(--muted); }
 .override-body { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* ---- Herd Mentality: win overlay ---- */
+.overlay { position: fixed; inset: 0; background: rgba(35, 32, 28, 0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.overlay-card { background: var(--surface); border-radius: var(--radius); padding: 28px; max-width: 360px; width: 100%; text-align: center; box-shadow: var(--shadow); }
+.overlay-card .confetti { font-size: 3rem; margin: 0; }
+.overlay-card h2 { margin: 6px 0; }

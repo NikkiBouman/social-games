@@ -72,7 +72,10 @@ function newGame() {
 
 function render() {
   if (state.phase === "setup") return renderSetup();
-  return renderPlaying(); // Task 5 adds the win overlay on top
+  renderPlaying();
+  if (state.winnerId && state.winnerId !== state.acknowledgedWinnerId) {
+    renderWinOverlay();
+  }
 }
 
 function renderSetup() {
@@ -254,6 +257,35 @@ function reshuffle() {
   state.cardIndex = 0;
   save();
   render();
+}
+
+function renderWinOverlay() {
+  const winner = state.players.find((p) => p.id === state.winnerId);
+  if (!winner) return;
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `
+    <div class="overlay-card">
+      <p class="confetti">🏆</p>
+      <h2>${escapeHtml(winner.name)} wint!</h2>
+      <p>${winner.cows} 🐄 — en geen roze koe.</p>
+      <div class="actions">
+        <button id="keep" class="btn">Toch verder spelen</button>
+        <button id="restart" class="btn btn-primary">Nieuw spel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector("#keep").addEventListener("click", keepPlaying);
+  overlay.querySelector("#restart").addEventListener("click", () => {
+    overlay.remove();
+    newGame();
+  });
+}
+
+function keepPlaying() {
+  state.acknowledgedWinnerId = state.winnerId;
+  save();
+  document.querySelector(".overlay")?.remove();
 }
 
 function escapeHtml(s) {
