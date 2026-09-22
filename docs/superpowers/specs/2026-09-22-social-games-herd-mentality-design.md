@@ -78,23 +78,35 @@ Het spel-scherm heeft twee sub-views (`state.view`), zodat de telefoon plat op t
 kan liggen en iedereen meeleest.
 
 **Kaart-view (`view = "card"`)** — de standaard.
-- Alleen de vraag, groot en centraal (`clamp`-lettergrootte, vult het scherm), met klein
-  categorie-label. **Tikken op de kaart zelf doet niets** — bewust, zodat je niet per
-  ongeluk doorklikt als de telefoon op tafel ligt of het scherm even uitvalt.
-- Kleine bediening onderaan: **📊 spelersbord** (opent popup), een voortgangsteller
-  (`3 / 30`), en een **→**-knop die naar de herd-view gaat. Subtiel: **Sla over** en
-  **Nieuw spel**.
+- Bovenbalk: **⚙ instellingen** (linksboven) en **📊 spelersbord** (rechtsboven), beide
+  kleine icoon-knoppen die een popup openen.
+- De vraag groot en centraal (`clamp`-lettergrootte), met klein categorie-label. De grote
+  **→**-knop staat op één lijn náást de vraag en gaat naar de herd-view.
+  **Tikken op de kaart zelf doet niets** — bewust, zodat je niet per ongeluk doorklikt als
+  de telefoon op tafel ligt of het scherm even uitvalt.
+- Onderaan klein: een **overslaan**-knop en de voortgangsteller (`3 / 30`).
 
 **Herd-view (`view = "herd"`)** — na de →.
+- Bovenbalk: **←** (terug naar kaart) en **📊 spelersbord**.
 - Toont **alleen de spelers** als grote toggle-knoppen; tik aan wie in de kudde zit
   (krijgt 🐄), nogmaals tikken haalt 'm eruit.
 - **Volgende kaart →** past de score toe (zie regels) en toont het volgende kaart-view.
-- **← Kaart** gaat terug zonder te scoren; de herd-selectie blijft bewaard.
+- **←** gaat terug zonder te scoren; de herd-selectie blijft bewaard.
 
 **Spelersbord (popup)** — oproepbaar vanuit beide views.
 - Koeien per speler (aflopend), wie de 🩷 roze koe heeft, en "🩷 = kan niet winnen".
 - Bevat de **handmatige roze-koe-override** ("geef roze koe aan … / Niemand") voor
   randgevallen die de auto-regel niet dekt. Zo blijft de herd-view puur spelers.
+
+**Instellingen (popup)** — via ⚙ op de kaart-view.
+- Spelers **toevoegen/verwijderen** tijdens het spel (nieuwe speler start op 0 🐄; bij
+  verwijderen worden verwijzingen naar die speler opgeschoond).
+- **Nieuw spel** → terug naar setup, stand gewist.
+
+### Stijl
+Neo-brutalist, één pop-kleur (CSS-variabele `--pop`, standaard kobaltblauw): dikke zwarte
+randen, harde offset-schaduwen, `Syne` display + `Space Mono` labels (via Google Fonts),
+knoppen die "ploffen" bij tikken. Mobile-first.
 
 Skip/Volgende raken de score en roze koe aan zoals in §Scorelogica; `view` keert bij elke
 kaartwissel terug naar `"card"`.

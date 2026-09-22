@@ -119,7 +119,7 @@ function renderSetup() {
       </div>
     </section>
 
-    <button id="start" class="btn btn-primary btn-block" ${canStart ? "" : "disabled"}>Start spel</button>
+    <button id="start" class="btn btn-pop btn-block" ${canStart ? "" : "disabled"}>Start spel</button>
   `;
 
   app.querySelector("#add-player").addEventListener("submit", (e) => {
@@ -163,24 +163,26 @@ function renderCardView() {
   const card = state.deck[state.cardIndex];
   app.innerHTML = `
     <section class="stage">
+      <div class="topbar">
+        <button id="settings" class="icon-btn" aria-label="Instellingen">⚙</button>
+        <button id="board" class="icon-btn" aria-label="Spelersbord">📊</button>
+      </div>
       <div class="card-face">
         <small class="q-set">${escapeHtml(card.setNaam)}</small>
-        <p class="q-text">${escapeHtml(card.text)}</p>
-      </div>
-      <div class="stage-bar">
-        <button id="board" class="round-btn" aria-label="Spelersbord">📊</button>
-        <span class="q-progress">${state.cardIndex + 1} / ${state.deck.length}</span>
-        <button id="to-herd" class="round-btn primary" aria-label="Score invullen">→</button>
+        <div class="q-row">
+          <p class="q-text">${escapeHtml(card.text)}</p>
+          <button id="to-herd" class="arrow-btn" aria-label="Score invullen">→</button>
+        </div>
       </div>
       <div class="stage-sub">
-        <button id="skip" class="link-btn">Sla over</button>
-        <button id="new" class="link-btn">Nieuw spel</button>
+        <button id="skip" class="skip-btn" aria-label="Overslaan">⤼ overslaan</button>
+        <span class="q-progress">${state.cardIndex + 1} / ${state.deck.length}</span>
       </div>
     </section>`;
   app.querySelector("#to-herd").addEventListener("click", () => { state.view = "herd"; save(); render(); });
   app.querySelector("#board").addEventListener("click", openScoreboard);
+  app.querySelector("#settings").addEventListener("click", openSettings);
   app.querySelector("#skip").addEventListener("click", skipCard);
-  app.querySelector("#new").addEventListener("click", newGame);
 }
 
 // Herd view: only the players, as toggles. Confirm advances to the next card.
@@ -188,18 +190,18 @@ function renderHerdView() {
   const inHerd = new Set(state.herdSelection);
   app.innerHTML = `
     <section class="stage">
-      <div class="herd-head">
-        <button id="back" class="link-btn">← Kaart</button>
-        <span class="hint">Tik wie in de kudde zit</span>
-        <button id="board" class="link-btn">Spelersbord</button>
+      <div class="topbar">
+        <button id="back" class="icon-btn" aria-label="Terug naar kaart">←</button>
+        <button id="board" class="icon-btn" aria-label="Spelersbord">📊</button>
       </div>
+      <h2 class="herd-title">Wie zat in de kudde?</h2>
       <div class="herd-grid">
         ${state.players.map((p) => `
           <button class="herd-btn ${inHerd.has(p.id) ? "in-herd" : ""}" data-herd="${p.id}">
             ${escapeHtml(p.name)}${inHerd.has(p.id) ? " 🐄" : ""}
           </button>`).join("")}
       </div>
-      <button id="next" class="btn btn-primary btn-block">Volgende kaart →</button>
+      <button id="next" class="btn btn-pop btn-block">Volgende kaart →</button>
     </section>`;
   app.querySelectorAll("[data-herd]").forEach((b) =>
     b.addEventListener("click", () => {
@@ -220,8 +222,8 @@ function openScoreboard() {
   const modal = document.createElement("div");
   modal.className = "overlay";
   modal.innerHTML = `
-    <div class="overlay-card board-card">
-      <h2>Spelersbord</h2>
+    <div class="sheet">
+      <h2>📊 Spelersbord</h2>
       <ul class="scoreboard-list">
         ${sorted.map((p) => `
           <li class="${p.id === state.pinkCowHolderId ? "has-pink" : ""}">
@@ -237,7 +239,7 @@ function openScoreboard() {
           <button class="btn" data-pink="__none">Niemand</button>
         </div>
       </details>
-      <button id="close-board" class="btn btn-primary btn-block">Sluiten</button>
+      <button id="close-board" class="btn btn-pop btn-block">Sluiten</button>
     </div>`;
   document.body.appendChild(modal);
   const close = () => modal.remove();
@@ -252,12 +254,56 @@ function openScoreboard() {
     }));
 }
 
+// Settings popup: add/remove players mid-game, or start a new game.
+function openSettings() {
+  const modal = document.createElement("div");
+  modal.className = "overlay";
+  modal.innerHTML = `
+    <div class="sheet">
+      <h2>⚙ Instellingen</h2>
+      <form id="add-player" class="row">
+        <input id="player-name" type="text" placeholder="Speler toevoegen" autocomplete="off" maxlength="24">
+        <button class="btn" type="submit">+</button>
+      </form>
+      <ul class="player-list">
+        ${state.players.map((p) => `
+          <li><span>${escapeHtml(p.name)}</span>
+          <button class="link-btn" data-remove="${p.id}">verwijder</button></li>`).join("")}
+      </ul>
+      <div class="actions"><button id="new" class="btn btn-block">Nieuw spel</button></div>
+      <button id="close-settings" class="btn btn-pop btn-block">Sluiten</button>
+    </div>`;
+  document.body.appendChild(modal);
+  const close = () => modal.remove();
+  modal.querySelector("#close-settings").addEventListener("click", close);
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+  modal.querySelector("#add-player").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = modal.querySelector("#player-name");
+    const name = input.value.trim();
+    if (!name) return;
+    state.players.push({ id: newId(), name, cows: 0 });
+    save(); close(); openSettings();
+  });
+  modal.querySelectorAll("[data-remove]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const id = b.dataset.remove;
+      state.players = state.players.filter((p) => p.id !== id);
+      state.herdSelection = state.herdSelection.filter((x) => x !== id);
+      if (state.pinkCowHolderId === id) state.pinkCowHolderId = null;
+      if (state.winnerId === id) state.winnerId = null;
+      if (state.acknowledgedWinnerId === id) state.acknowledgedWinnerId = null;
+      save(); close(); openSettings();
+    }));
+  modal.querySelector("#new").addEventListener("click", () => { close(); newGame(); });
+}
+
 function renderDeckEmpty() {
   app.innerHTML = `
     <section class="stage">
       <div class="card-face"><p class="q-text">Alle kaarten gehad! 🎉</p></div>
       <div class="actions">
-        <button id="reshuffle" class="btn btn-primary">Opnieuw husselen</button>
+        <button id="reshuffle" class="btn btn-pop">Opnieuw husselen</button>
         <button id="board" class="btn">Spelersbord</button>
         <button id="new" class="btn">Nieuw spel</button>
       </div>
@@ -298,15 +344,15 @@ function renderWinOverlay() {
   const winner = state.players.find((p) => p.id === state.winnerId);
   if (!winner) return;
   const overlay = document.createElement("div");
-  overlay.className = "overlay";
+  overlay.className = "overlay win";
   overlay.innerHTML = `
-    <div class="overlay-card">
+    <div class="sheet">
       <p class="confetti">🏆</p>
       <h2>${escapeHtml(winner.name)} wint!</h2>
       <p>${winner.cows} 🐄 — en geen roze koe.</p>
       <div class="actions">
         <button id="keep" class="btn">Toch verder spelen</button>
-        <button id="restart" class="btn btn-primary">Nieuw spel</button>
+        <button id="restart" class="btn btn-pop">Nieuw spel</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
