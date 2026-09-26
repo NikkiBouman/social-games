@@ -12,7 +12,6 @@
 <body>
   <main class="wrap">
     <h1>🎉 Social Games</h1>
-    <p class="subtitle">Speel lokaal op één apparaat, of verbind telefoons met een kamercode.</p>
     <div id="app"></div>
   </main>
 
@@ -22,68 +21,114 @@
     const app = document.getElementById("app");
     const q = new URLSearchParams(location.search);
     const preJoin = (q.get("join") || q.get("room") || "").toUpperCase();
+    const SESSION = "sg-session";
 
-    const state = { view: "home", code: null, pid: null, roster: [], error: "" };
+    const state = { view: "home", code: null, pid: null, roster: [], error: "", resume: null };
     const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const gameRoute = (g, role, pid, code) => `${g}/?room=${code}&role=${role}&pid=${pid}`;
+    const savedName = () => sessionStorage.getItem("sg-name") || "";
+    const saveSession = (s) => sessionStorage.setItem(SESSION, JSON.stringify(s));
+    const loadSession = () => { try { return JSON.parse(sessionStorage.getItem(SESSION) || "null"); } catch { return null; } };
+    const clearSession = () => sessionStorage.removeItem(SESSION);
 
     function render() {
       if (state.view === "home") return renderHome();
+      if (state.view === "offline") return renderOffline();
       if (state.view === "hostlobby") return renderHostLobby();
       if (state.view === "playerlobby") return renderPlayerLobby();
     }
 
     function renderHome() {
+      const r = state.resume;
+      const banner = r ? `
+        <section class="card resume">
+          <p class="resume-line">${r.role === "host" ? "🟢 Jij host kamer" : "🟢 Je zit in kamer"} <strong>${esc(r.code)}</strong></p>
+          <div class="row">
+            <button id="resume-go" class="btn btn-pop" style="flex:1">Ga verder</button>
+            <button id="resume-leave" class="btn">Verlaten</button>
+          </div>
+        </section>` : "";
+
       app.innerHTML = `
+        ${banner}
+        <section class="card">
+          <h2>Hosten</h2>
+          <div class="row" style="margin-bottom:10px">
+            <input id="host-name" type="text" placeholder="Jouw naam" maxlength="24" autocomplete="off" value="${esc(savedName())}">
+          </div>
+          <button id="host" class="btn btn-pop btn-block">Start</button>
+        </section>
+
+        <section class="card">
+          <h2>Meedoen</h2>
+          <div class="row" style="margin-bottom:10px">
+            <input id="join-code" type="text" placeholder="Kamercode" maxlength="4" autocomplete="off"
+                   style="text-transform:uppercase" value="${esc(preJoin)}">
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <input id="join-name" type="text" placeholder="Jouw naam" maxlength="24" autocomplete="off" value="${esc(savedName())}">
+          </div>
+          <button id="join" class="btn btn-block">Join</button>
+        </section>
+
+        ${state.error ? `<p class="error">${esc(state.error)}</p>` : ""}
+
+        <p class="offline-link"><a href="#" id="offline">( of speel offline )</a></p>
+        <p class="offline-note">Niet alle spellen zijn mogelijk offline.</p>`;
+
+      if (r) {
+        app.querySelector("#resume-go").addEventListener("click", () => {
+          state.code = r.code; state.pid = r.pid;
+          state.view = r.role === "host" ? "hostlobby" : "playerlobby";
+          subscribeLobby(); render();
+        });
+        app.querySelector("#resume-leave").addEventListener("click", () => {
+          if (r.role === "host") net.endRoom(r.code);
+          clearSession(); state.resume = null; render();
+        });
+      }
+
+      app.querySelector("#host").addEventListener("click", async () => {
+        const name = app.querySelector("#host-name").value.trim();
+        if (!name) { state.error = "Vul je naam in."; return render(); }
+        sessionStorage.setItem("sg-name", name);
+        state.error = "";
+        const { code, pid } = await net.createRoom(name);
+        state.code = code; state.pid = pid; state.view = "hostlobby";
+        saveSession({ role: "host", code, pid });
+        subscribeLobby(); render();
+      });
+
+      const joinFlow = async () => {
+        const code = app.querySelector("#join-code").value.trim().toUpperCase();
+        const name = app.querySelector("#join-name").value.trim();
+        if (code.length !== 4) { state.error = "Voer de 4-letter kamercode in."; return render(); }
+        if (!name) { state.error = "Vul je naam in."; return render(); }
+        sessionStorage.setItem("sg-name", name);
+        const res = await net.joinRoom(code, name);
+        if (res.error) { state.error = "Kamer niet gevonden."; return render(); }
+        state.code = code; state.pid = res.pid; state.view = "playerlobby"; state.error = "";
+        saveSession({ role: "player", code, pid: res.pid });
+        subscribeLobby(); render();
+      };
+      app.querySelector("#join").addEventListener("click", joinFlow);
+      app.querySelector("#join-code").addEventListener("keydown", (e) => { if (e.key === "Enter") app.querySelector("#join-name").focus(); });
+      app.querySelector("#join-name").addEventListener("keydown", (e) => { if (e.key === "Enter") joinFlow(); });
+      app.querySelector("#offline").addEventListener("click", (e) => { e.preventDefault(); state.view = "offline"; render(); });
+    }
+
+    function renderOffline() {
+      app.innerHTML = `
+        <p><a class="backlink" href="#" id="back">← terug</a></p>
         <div class="game-grid">
           <a class="game-card" href="herd-mentality/">
             <h2>🐄 Herd Mentality</h2>
             <p>Denk als de kudde. Zit jij bij de meerderheid — of blijf je met de roze koe zitten?</p>
           </a>
         </div>
-        <section class="card">
-          <h2>📱 Speel met telefoons</h2>
-          <p class="hint">Verbind ieders telefoon met een kamercode. Daarna kies je samen een spel (o.a. 🕵️ Imposter).</p>
-          <div class="row" style="margin-bottom:10px">
-            <input id="name" type="text" placeholder="Jouw naam" maxlength="24" autocomplete="off" value="${esc(sessionStorage.getItem("sg-name") || "")}">
-          </div>
-          <button id="host" class="btn btn-pop btn-block">Kamer starten</button>
-          <div class="row" style="margin-top:14px">
-            <input id="joincode" type="text" placeholder="Code" maxlength="4" autocomplete="off"
-                   style="text-transform:uppercase;max-width:110px" value="${esc(preJoin)}">
-            <button id="join" class="btn">Meedoen</button>
-          </div>
-          ${state.error ? `<p class="error">${esc(state.error)}</p>` : ""}
-        </section>`;
-
-      const nameEl = app.querySelector("#name");
-      app.querySelector("#host").addEventListener("click", async () => {
-        const name = nameEl.value.trim();
-        if (!name) { state.error = "Vul je naam in."; return render(); }
-        sessionStorage.setItem("sg-name", name);
-        state.error = "";
-        const { code, pid } = await net.createRoom(name);
-        state.code = code; state.pid = pid; state.view = "hostlobby";
-        subscribeLobby();
-        render();
-      });
-      app.querySelector("#join").addEventListener("click", joinFlow);
-      app.querySelector("#joincode").addEventListener("keydown", (e) => { if (e.key === "Enter") joinFlow(); });
-      if (preJoin) nameEl.focus();
-
-      async function joinFlow() {
-        const name = nameEl.value.trim();
-        const codeIn = app.querySelector("#joincode").value.trim().toUpperCase();
-        if (!name) { state.error = "Vul je naam in."; return render(); }
-        if (codeIn.length !== 4) { state.error = "Voer de 4-letter code in."; return render(); }
-        sessionStorage.setItem("sg-name", name);
-        const res = await net.joinRoom(codeIn, name);
-        if (res.error) { state.error = "Kamer niet gevonden."; return render(); }
-        state.code = codeIn; state.pid = res.pid; state.view = "playerlobby"; state.error = "";
-        subscribeLobby();
-        render();
-      }
+        <p class="offline-note">🕵️ Imposter kan alleen met verbonden telefoons.</p>`;
+      app.querySelector("#back").addEventListener("click", (e) => { e.preventDefault(); state.view = "home"; render(); });
     }
 
     function renderHostLobby() {
@@ -104,12 +149,17 @@
             <button class="btn btn-block" data-game="herd-mentality">🐄 Herd Mentality</button>
             <button class="btn btn-block btn-pop" data-game="imposter">🕵️ Imposter</button>
           </div>
-        </section>`;
+        </section>
+        <button id="leave" class="btn btn-block">Kamer verlaten</button>`;
       app.querySelectorAll("[data-game]").forEach((b) =>
         b.addEventListener("click", async () => {
           await net.setGame(state.code, b.dataset.game);
           location.href = gameRoute(b.dataset.game, "host", state.pid, state.code);
         }));
+      app.querySelector("#leave").addEventListener("click", () => {
+        net.endRoom(state.code); clearSession();
+        state.resume = null; state.view = "home"; render();
+      });
     }
 
     function renderPlayerLobby() {
@@ -118,21 +168,35 @@
           <h2>Verbonden ✓</h2>
           <p class="hint">Kamer <strong>${state.code}</strong>. Wacht tot de host een spel kiest…</p>
           <ul class="player-list">${state.roster.map((p) => `<li><span>${esc(p.name)}</span></li>`).join("")}</ul>
-        </section>`;
+        </section>
+        <button id="leave" class="btn btn-block">Kamer verlaten</button>`;
+      app.querySelector("#leave").addEventListener("click", () => {
+        clearSession(); state.resume = null; state.view = "home"; render();
+      });
     }
 
     function subscribeLobby() {
       net.onRoster(state.code, (r) => { state.roster = r; if (state.view.endsWith("lobby")) render(); });
       net.onMeta(state.code, (m) => {
-        if (m && m.phase === "ingame" && m.game) {
+        if (m && m.phase === "ingame" && m.game && state.view.endsWith("lobby")) {
           const role = state.view === "hostlobby" ? "host" : "player";
           location.href = gameRoute(m.game, role, state.pid, state.code);
         }
       });
     }
 
-    // auto-open join if arriving via a shared link
-    render();
+    // ---- boot: restore a remembered room if it still exists ----
+    const pending = loadSession();
+    if (pending && pending.code) {
+      app.innerHTML = `<p class="hint">Even kijken…</p>`;
+      (async () => {
+        if (await net.roomExists(pending.code)) state.resume = pending;
+        else clearSession();
+        render();
+      })();
+    } else {
+      render();
+    }
   </script>
 </body>
 </html>
