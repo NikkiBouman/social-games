@@ -3,6 +3,17 @@ import { buildDeck, awardCows, reassignPinkCow, determineWinner } from "./logic.
 const STORAGE_KEY = "social-games:herd-mentality";
 const app = document.getElementById("app");
 
+// Optional multiplayer: when opened from the lobby with room params, the host
+// pushes the current question to connected phones (display-only). Without params
+// Herd Mentality runs fully local, exactly as before.
+const params = new URLSearchParams(location.search);
+const ROOM = params.get("room");
+const ROLE = params.get("role");
+const PID = params.get("pid");
+const CONNECTED = !!(ROOM && ROLE && PID);
+let net = null;            // lazily imported connection layer (only when connected)
+let connectedRoster = [];  // host: player names from the lobby
+
 let sets = [];        // loaded set objects: { id, naam, emoji, vragen }
 let state = freshState();
 
@@ -100,6 +111,9 @@ function renderSetup() {
           <button class="link-btn" data-remove="${p.id}">verwijder</button></li>`).join("")}
       </ul>
       <p class="hint">${state.players.length < 3 ? `Nog minstens ${3 - state.players.length} speler(s) nodig.` : `${state.players.length} spelers.`}</p>
+      ${(CONNECTED && ROLE === "host" && connectedRoster.length)
+        ? `<button type="button" id="use-connected" class="btn btn-block" style="margin-top:10px">Deze ${connectedRoster.length} verbonden spelers gebruiken?</button>`
+        : ""}
     </section>
 
     <section class="card">
@@ -164,6 +178,11 @@ function renderSetup() {
     save(); renderSetup();
   });
   app.querySelector("#start").addEventListener("click", startGame);
+  const useBtn = app.querySelector("#use-connected");
+  if (useBtn) useBtn.addEventListener("click", () => {
+    state.players = connectedRoster.map((p) => ({ id: newId(), name: p.name, cows: 0 }));
+    save(); renderSetup();
+  });
 }
 
 function renderPlaying() {
@@ -176,6 +195,7 @@ function renderPlaying() {
 // (deliberate — prevents accidental advance when the phone is on the table).
 function renderCardView() {
   const card = state.deck[state.cardIndex];
+  if (CONNECTED && ROLE === "host" && net) net.pushGameState(ROOM, { currentQuestion: card.text });
   app.innerHTML = `
     <section class="stage">
       <div class="topbar">
@@ -406,11 +426,19 @@ function escapeHtml(s) {
 
 // ---- boot ----
 (async function boot() {
+  if (CONNECTED) {
+    try { net = await import("../lib/connect.js"); } catch { net = null; }
+  }
+  if (CONNECTED && ROLE === "player" && net) return bootPlayer();
+
   try {
     await loadSets();
   } catch (e) {
     app.innerHTML = `<p class="error">Kon de vragen niet laden. Draai je de site via een server (niet als bestand)?</p>`;
     return;
+  }
+  if (CONNECTED && ROLE === "host" && net) {
+    net.onRoster(ROOM, (r) => { connectedRoster = r; if (state.phase === "setup") renderSetup(); });
   }
   load(); // restore in-progress game if present
   render();
@@ -420,3 +448,19 @@ function escapeHtml(s) {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
   window.addEventListener("resize", refit);
 })();
+
+// ---- connected player: mirror the host's current question (display only) ----
+function bootPlayer() {
+  document.body.classList.add("is-playing");
+  renderPlayerQuestion(null);
+  net.onGameState(ROOM, (g) => renderPlayerQuestion(g && g.currentQuestion));
+}
+function renderPlayerQuestion(text) {
+  app.innerHTML = `
+    <section class="stage">
+      <div class="card-face">
+        <p class="q-text">${text ? escapeHtml(text) : "Wachten op de host…"}</p>
+      </div>
+    </section>`;
+  fitQuestion();
+}

@@ -190,3 +190,60 @@ body.is-playing .wrap { padding-top: 14px; }
 @keyframes spin { from { transform: rotate(-20deg) scale(0); } to { transform: none; } }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .actions .btn { flex: 1; }
+
+/* ---------- lobby ---------- */
+.room-code { font-size: 2.6rem; font-weight: 800; letter-spacing: 0.15em; text-align: center; margin: 6px 0; }
+.lobby-games { display: grid; gap: 10px; }
+.lobby-games .btn { min-height: 60px; font-size: 1.1rem; }
+
+/* ---------- Imposter ---------- */
+.imp-stage { display: flex; flex-direction: column; gap: 16px; min-height: 60vh; }
+.imp-block { background: var(--surface); border: var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; text-align: center; }
+.imp-h { margin: 0 0 14px; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
+.imp-prompt { color: var(--muted); font-weight: 700; margin: 0 0 8px; }
+.imp-q { font-size: 1.5rem; font-weight: 800; margin: 6px 0 16px; }
+.imp-role { font-size: 1.3rem; font-weight: 800; padding: 20px; border-radius: var(--radius); }
+.imp-imposter { background: var(--pink); color: #fff; }
+.imp-banner { background: var(--pop); color: var(--pop-ink); font-weight: 700; padding: 8px; border-radius: var(--radius); margin-bottom: 12px; }
+.imp-done { color: var(--muted); font-weight: 700; margin: 12px 0 0; }
+.imp-wait { text-align: center; padding: 40px 0; }
+.imp-big { font-size: 3rem; margin: 0 0 10px; }
+
+/* number pad + player pick */
+.imp-nums { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
+.imp-num { min-height: 52px; border: var(--line); border-radius: var(--radius); background: var(--surface); font-family: inherit; font-size: 1.2rem; font-weight: 800; cursor: pointer; box-shadow: var(--shadow-sm); }
+.imp-players { display: grid; gap: 8px; margin-top: 8px; }
+.imp-pick { min-height: 52px; border: var(--line); border-radius: var(--radius); background: var(--surface); font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-sm); }
+.imp-num.on, .imp-pick.on { background: var(--pop); color: var(--pop-ink); }
+.imp-textform { display: flex; gap: 8px; margin-top: 8px; }
+.imp-textform input { flex: 1; min-width: 0; min-height: 50px; padding: 0 12px; border: var(--line); border-radius: var(--radius); font-family: inherit; font-size: 1rem; }
+
+/* answers list */
+.imp-answers { list-style: none; padding: 0; margin: 0; }
+.imp-answers li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 2px dashed var(--hair); font-weight: 700; text-align: left; }
+.imp-aname { color: var(--muted); }
+
+/* countdown */
+.imp-countdown { padding: 40px 20px; }
+.imp-count { font-size: 5rem; font-weight: 800; margin: 0; line-height: 1; }
+.imp-action { font-size: 1.3rem; font-weight: 800; margin: 12px 0 0; }
+
+/* result */
+.imp-win { color: var(--pop); font-weight: 800; font-size: 1.2rem; }
+.imp-lose { color: var(--pink); font-weight: 800; font-size: 1.2rem; }
+
+/* host bar */
+.imp-hostbar { display: flex; flex-direction: column; gap: 10px; border-top: 3px dashed var(--hair); padding-top: 14px; }
+.imp-round { color: var(--muted); font-weight: 700; font-size: 0.9rem; text-align: center; }
+.imp-hostbtns { display: flex; gap: 10px; flex-wrap: wrap; }
+.imp-hostbtns .btn { flex: 1; min-height: 52px; }
+.imp-hostbtns .hint { flex-basis: 100%; text-align: center; margin: 0; }
+
+/* host setup */
+.imp-mode { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.imp-mode-label { font-weight: 800; }
+.imp-seg { display: flex; gap: 6px; }
+.imp-seg button { min-height: 44px; padding: 0 12px; border: var(--line); border-radius: var(--radius); background: var(--surface); font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: var(--shadow-sm); }
+.imp-seg button.on { background: var(--pop); color: var(--pop-ink); }
+.imp-adult { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-weight: 700; }
+.imp-adult input { width: 20px; height: 20px; accent-color: var(--pop); }

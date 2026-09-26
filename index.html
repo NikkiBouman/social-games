@@ -12,13 +12,127 @@
 <body>
   <main class="wrap">
     <h1>🎉 Social Games</h1>
-    <p class="subtitle">Kies een spel om te spelen.</p>
-    <div class="game-grid">
-      <a class="game-card" href="herd-mentality/">
-        <h2>🐄 Herd Mentality</h2>
-        <p>Denk als de kudde. Zit jij bij de meerderheid — of blijf je met de roze koe zitten?</p>
-      </a>
-    </div>
+    <p class="subtitle">Speel lokaal op één apparaat, of verbind telefoons met een kamercode.</p>
+    <div id="app"></div>
   </main>
+
+  <script type="module">
+    import * as net from "./lib/connect.js";
+
+    const app = document.getElementById("app");
+    const q = new URLSearchParams(location.search);
+    const preJoin = (q.get("join") || q.get("room") || "").toUpperCase();
+
+    const state = { view: "home", code: null, pid: null, roster: [], error: "" };
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const gameRoute = (g, role, pid, code) => `${g}/?room=${code}&role=${role}&pid=${pid}`;
+
+    function render() {
+      if (state.view === "home") return renderHome();
+      if (state.view === "hostlobby") return renderHostLobby();
+      if (state.view === "playerlobby") return renderPlayerLobby();
+    }
+
+    function renderHome() {
+      app.innerHTML = `
+        <div class="game-grid">
+          <a class="game-card" href="herd-mentality/">
+            <h2>🐄 Herd Mentality</h2>
+            <p>Denk als de kudde. Zit jij bij de meerderheid — of blijf je met de roze koe zitten?</p>
+          </a>
+        </div>
+        <section class="card">
+          <h2>📱 Speel met telefoons</h2>
+          <p class="hint">Verbind ieders telefoon met een kamercode. Daarna kies je samen een spel (o.a. 🕵️ Imposter).</p>
+          <div class="row" style="margin-bottom:10px">
+            <input id="name" type="text" placeholder="Jouw naam" maxlength="24" autocomplete="off" value="${esc(sessionStorage.getItem("sg-name") || "")}">
+          </div>
+          <button id="host" class="btn btn-pop btn-block">Kamer starten</button>
+          <div class="row" style="margin-top:14px">
+            <input id="joincode" type="text" placeholder="Code" maxlength="4" autocomplete="off"
+                   style="text-transform:uppercase;max-width:110px" value="${esc(preJoin)}">
+            <button id="join" class="btn">Meedoen</button>
+          </div>
+          ${state.error ? `<p class="error">${esc(state.error)}</p>` : ""}
+        </section>`;
+
+      const nameEl = app.querySelector("#name");
+      app.querySelector("#host").addEventListener("click", async () => {
+        const name = nameEl.value.trim();
+        if (!name) { state.error = "Vul je naam in."; return render(); }
+        sessionStorage.setItem("sg-name", name);
+        state.error = "";
+        const { code, pid } = await net.createRoom(name);
+        state.code = code; state.pid = pid; state.view = "hostlobby";
+        subscribeLobby();
+        render();
+      });
+      app.querySelector("#join").addEventListener("click", joinFlow);
+      app.querySelector("#joincode").addEventListener("keydown", (e) => { if (e.key === "Enter") joinFlow(); });
+      if (preJoin) nameEl.focus();
+
+      async function joinFlow() {
+        const name = nameEl.value.trim();
+        const codeIn = app.querySelector("#joincode").value.trim().toUpperCase();
+        if (!name) { state.error = "Vul je naam in."; return render(); }
+        if (codeIn.length !== 4) { state.error = "Voer de 4-letter code in."; return render(); }
+        sessionStorage.setItem("sg-name", name);
+        const res = await net.joinRoom(codeIn, name);
+        if (res.error) { state.error = "Kamer niet gevonden."; return render(); }
+        state.code = codeIn; state.pid = res.pid; state.view = "playerlobby"; state.error = "";
+        subscribeLobby();
+        render();
+      }
+    }
+
+    function renderHostLobby() {
+      const joinUrl = `${location.origin}${location.pathname}?join=${state.code}`;
+      app.innerHTML = `
+        <section class="card">
+          <h2>Kamercode</h2>
+          <p class="room-code">${state.code}</p>
+          <p class="hint">Laat anderen naar <strong>deze site</strong> gaan en de code invoeren.<br>Of deel: ${esc(joinUrl)}</p>
+        </section>
+        <section class="card">
+          <h2>Verbonden (${state.roster.length})</h2>
+          <ul class="player-list">${state.roster.map((p) => `<li><span>${esc(p.name)}</span></li>`).join("")}</ul>
+        </section>
+        <section class="card">
+          <h2>Kies een spel</h2>
+          <div class="lobby-games">
+            <button class="btn btn-block" data-game="herd-mentality">🐄 Herd Mentality</button>
+            <button class="btn btn-block btn-pop" data-game="imposter">🕵️ Imposter</button>
+          </div>
+        </section>`;
+      app.querySelectorAll("[data-game]").forEach((b) =>
+        b.addEventListener("click", async () => {
+          await net.setGame(state.code, b.dataset.game);
+          location.href = gameRoute(b.dataset.game, "host", state.pid, state.code);
+        }));
+    }
+
+    function renderPlayerLobby() {
+      app.innerHTML = `
+        <section class="card">
+          <h2>Verbonden ✓</h2>
+          <p class="hint">Kamer <strong>${state.code}</strong>. Wacht tot de host een spel kiest…</p>
+          <ul class="player-list">${state.roster.map((p) => `<li><span>${esc(p.name)}</span></li>`).join("")}</ul>
+        </section>`;
+    }
+
+    function subscribeLobby() {
+      net.onRoster(state.code, (r) => { state.roster = r; if (state.view.endsWith("lobby")) render(); });
+      net.onMeta(state.code, (m) => {
+        if (m && m.phase === "ingame" && m.game) {
+          const role = state.view === "hostlobby" ? "host" : "player";
+          location.href = gameRoute(m.game, role, state.pid, state.code);
+        }
+      });
+    }
+
+    // auto-open join if arriving via a shared link
+    render();
+  </script>
 </body>
 </html>
