@@ -8,121 +8,148 @@ imposter is; aan het eind stemt iedereen in de app.
 
 ## 1. Kern
 
-- Verbinding is **verplicht** (de laag levert kamer + roster + push). Minimaal 3
-  spelers.
+- Verbinding is **verplicht** (de laag levert kamer + roster + push). Elke speler
+  heeft een telefoon (nodig om privé z'n vraag/rol te zien — ook de imposter).
+  Minimaal 3 spelers.
 - Er is **één imposter voor het hele spel**, geloot bij de start.
-- De host **bestuurt én speelt mee**. Voor de imposter-geheimhouding: zie §4.
-- Vraag na vraag; elke vraag heeft een **type** dat de invoer bepaalt. Na elke
-  vraag zien alle spelers elkaars antwoorden en bespreken ze offline.
+- De host **bestuurt én speelt mee**. Voor de imposter-geheimhouding: zie §6.
+- Vraag na vraag; elke vraag heeft een **type** (§2). Per type kies je in de setup
+  of er **op het apparaat** of **fysiek** wordt geantwoord (§3). Na elke vraag
+  bespreekt de groep offline.
 - **Eindstemming** in de app → onthulling: pakte de groep de imposter?
 
 ## 2. Vraagtypes
 
-Elke vraag heeft één van drie types. Alle invoer gebeurt **in de app**; er is geen
-fysieke component meer.
-
-| Type | Niet-imposter ziet | Invoer | Imposter ziet |
+| Type | Niet-imposter ziet | Antwoord (device) | Imposter ziet |
 |---|---|---|---|
-| **WIJZEN** | prompt + vraag | tik een **speler** aan (roster als opties) | alleen instructie (geen vraag) |
+| **WIJZEN** | prompt + vraag | tik een **speler** aan | alleen instructie (geen vraag) |
 | **AANTALLEN** | prompt + vraag | tik een **getal 0–10** aan | alleen instructie (geen vraag) |
-| **ANTWOORDEN** | prompt + de **echte** vraag | **tekstveld** | de **getwiste** 2e vraag + tekstveld |
+| **ANTWOORDEN** | prompt + **echte** vraag | **tekstveld** | de **getwiste** 2e vraag + tekstveld |
 
-- WIJZEN-prompt: "Wijs naar de speler waar jouw antwoord op slaat."
-- AANTALLEN-prompt: "Kies het getal (0–10) dat jouw antwoord is."
-- ANTWOORDEN-prompt: "Vul je antwoord op de vraag in."
-- Imposter-instructies (in-app taal, zelfde toon als origineel):
-  - WIJZEN: "Je bent de imposter. Kies een willekeurige speler en hoop op het beste."
-  - AANTALLEN: "Je bent de imposter. Kies een willekeurig getal (0–10) en hoop op het beste."
-  - ANTWOORDEN: "Je bent de imposter. Beantwoord de vraag — maar hij heeft net een andere twist dan de echte vraag."
+- Prompts (niet-imposter): WIJZEN "Wijs naar de speler waar jouw antwoord op
+  slaat." · AANTALLEN "Kies het getal (0–10) dat jouw antwoord is." · ANTWOORDEN
+  "Vul je antwoord op de vraag in."
+- Imposter-instructies: WIJZEN "Je bent de imposter. Kies een willekeurige speler
+  en hoop op het beste." · AANTALLEN "Je bent de imposter. Kies een willekeurig
+  getal (0–10) en hoop op het beste." · ANTWOORDEN "Je bent de imposter. Beantwoord
+  de vraag — maar hij heeft net een andere twist dan de echte vraag."
+- AANTALLEN-bereik is 0–10; 10 telt als "10 of meer".
 
-Bij **AANTALLEN** is het antwoordbereik 0–10; 10 telt als "10 of meer".
+## 3. Setup: invoermodus per type + 18+
 
-## 3. Ronde-choreografie (per vraag)
+Na het verbinden (lobby van de laag) ziet de **host** een setup-scherm:
 
-1. **Antwoorden** — elke telefoon toont z'n eigen `view` (zie §5) en de bijpassende
-   invoer. Iedereen voert in en verstuurt → `players/{pid}/answer`.
-2. **Eerlijk lezen** — daarna toont **elk** scherm de **echte** vraag aan iedereen
-   (ook de imposter). Niet-imposters zien de banner *"Lees de vraag opnieuw voor
-   eerlijkheid"* — zo ziet elk scherm er hetzelfde uit en valt de imposter (die 'm
-   nu pas leest) niet op. Iedereen klikt **"ok"** (`players/{pid}/read`). Je ziet
-   **niet** wie nog niet klikte (geen timing-tell).
-3. **Onthulling** — als iedereen "ok" klikte, verschijnen **alle antwoorden mét
-   naam** op elke telefoon (WIJZEN → "X koos Y", AANTALLEN → "X: 7", ANTWOORDEN →
-   "X: …"). Bespreken → host gaat naar de volgende vraag.
+- **Per type een keuze device ↔ fysiek:**
+  - AANTALLEN: *"nummer invoeren"* of *"vingers opsteken"*.
+  - WIJZEN: *"speler aanklikken"* of *"speler aanwijzen"*.
+  - ANTWOORDEN: *"antwoord intypen"* of *"antwoord opnoemen"*.
+- Daaronder de **18+ toggle** (sluit 18+-vragen in/uit).
+- Dan **Start** → imposter geloot, spel begint.
 
-## 4. Het geheim — host speelt mee, imposter "pragmatisch verborgen"
+De keuze geldt per type voor het hele spel. Een spel kan dus types mengen (bijv.
+AANTALLEN fysiek, ANTWOORDEN op device). In **beide** modi blijven de telefoons in
+gebruik om de vraag/rol te tonen; alleen het *antwoorden* verschilt.
 
-De imposter moet verborgen blijven, óók voor de host (die meespeelt). Volledig
-waterdicht verbergen kan alleen met een servertje + Firebase-auth + per-speler
-rules (zie route 2 hieronder) — dat breekt de "puur client + open DB"-eenvoud.
+## 4. Ronde — device-modus (per vraag)
+
+1. **Antwoorden** (`answer`) — elke telefoon toont z'n eigen `view` (§7) + de
+   invoer (speler-kiezer / 0–10 / tekstveld). Iedereen voert in en verstuurt →
+   `players/{pid}/answer`.
+2. **Eerlijk lezen** (`read`) — daarna toont **elk** scherm de **echte** vraag aan
+   iedereen (ook de imposter); niet-imposters zien de banner *"Lees de vraag
+   opnieuw voor eerlijkheid"* — zo ziet elk scherm er hetzelfde uit en valt de
+   imposter (die 'm nu pas leest) niet op. Iedereen klikt **"ok"**
+   (`players/{pid}/read`). Je ziet **niet** wie nog niet klikte.
+3. **Onthulling** (`reveal`) — als iedereen "ok" klikte, verschijnen **alle
+   antwoorden mét naam** op elke telefoon (WIJZEN → "X koos Y", AANTALLEN → "X: 7",
+   ANTWOORDEN → "X: …"). Bespreken → host naar de volgende vraag.
+
+## 5. Ronde — fysieke modus (per vraag)
+
+1. **Klaarmaken** (`answer`, geen invoer) — niet-imposters zien de vraag (+ "maak je
+   klaar om te … opsteken/aanwijzen/opnoemen"); de imposter ziet alleen z'n
+   instructie. Géén app-invoer.
+2. **Aftellen** (`countdown`) — de app telt **3… 2… 1…** af **met geluid**; op "0"
+   doet iedereen z'n fysieke actie tegelijk (vingers opsteken / aanwijzen /
+   antwoord opnoemen). Sync via een gedeelde starttijd (`game.countdownStart`) die
+   de host schrijft; elk toestel telt lokaal af.
+3. **Vraag tonen** (`shown`) — na nog ~3 sec verschijnt de **echte vraag op ieders
+   scherm, ook bij de imposter** (equaliseert de schermen + de imposter leert de
+   vraag). Bespreken → host naar de volgende vraag.
+
+Geen antwoord-verzameling of "ok"-stap in fysieke modus.
+
+## 6. Het geheim — host speelt mee, imposter "pragmatisch verborgen"
+
+De imposter moet verborgen blijven, óók voor de meespelende host. Volledig
+waterdicht kan alleen met een servertje + Firebase-auth + per-speler rules (route
+2) — dat breekt de "puur client + open DB"-eenvoud.
 
 **Gekozen route (1, pragmatisch):** de app loot de imposter in code en toont de
 host — net als elke speler — **alleen z'n eigen rol**; de mapping wordt nergens
 getoond. Voor een normale host onzichtbaar. Restrisico: een host die met
-devtools/DB gaat graven kan 't vinden — zelfde categorie als de open-rules-
-kanttekening die al geaccepteerd is. Prima voor een vriendenspel.
+devtools/DB graaft kan 't vinden — zelfde categorie als de open-rules-kanttekening
+die al geaccepteerd is. Prima voor een vriendenspel.
 
-**Bewaard als open keuze (2, waterdicht, later):** Cloudflare Worker (gratis) loot
-bij start + Firebase Anonymous Auth + rules zodat elke telefoon alléén z'n eigen
-rol leest. Reëel extra werk; alleen doen als spieken een echt probleem wordt.
+**Open keuze (2, waterdicht, later):** Cloudflare Worker (gratis) loot bij start +
+Firebase Anonymous Auth + rules zodat elke telefoon alléén z'n eigen rol leest.
+Reëel extra werk; alleen als spieken een echt probleem wordt.
 
-Concreet, ongeacht de route: vraag- en imposter-identiteit staan **nooit** in de
-publieke `game/`-state. Alles wat een speler moet zien staat in z'n **eigen**
-`players/{pid}/view` (zie §5).
+Ongeacht de route: vraag- en imposter-identiteit staan **nooit** in de publieke
+`game/`-state vóór het moment dat de vraag sowieso aan iedereen getoond wordt.
+Alles wat een speler eerder moet zien staat in z'n **eigen** `players/{pid}/view`.
 
-## 5. Datamodel (bovenop de laag)
+## 7. Datamodel (bovenop de laag)
 
 Onder `rooms/{CODE}` (van de laag), met `meta.game='imposter'`:
 
 ```
 rooms/{CODE}/
   game/
-    phase          # 'lobby' | 'answer' | 'read' | 'reveal' | 'voting' | 'result'
+    modes          # { wijzen:'device'|'physical', aantallen:…, antwoorden:… }  (setup)
+    adult          # bool — 18+ toggle
+    phase          # 'lobby'|'answer'|'read'|'reveal'|'countdown'|'shown'|'voting'|'result'
     roundNo        # ronde-teller (géén vraag-id!)
-    type           # 'wijzen' | 'aantallen' | 'antwoorden'  (huidige vraag)
-    prompt         # de prompt-tekst voor niet-imposters (type-afhankelijk)
-    question       # ECHTE vraag — pas publiek vanaf fase 'read' (eerlijk lezen)
-    answers        # 'reveal': map pid -> weergave-antwoord (mét naam via names)
+    type           # 'wijzen'|'aantallen'|'antwoorden' (huidige vraag)
+    prompt         # prompt-tekst voor niet-imposters
+    question       # ECHTE vraag — pas publiek in 'read' (device) / 'shown' (fysiek)
+    countdownStart # ts waarop de 3-2-1 begon (fysieke modus)
+    answers        # 'reveal' (device): map pid -> weergave-antwoord
     result         # 'result': { impostorPid, impostorName, topSuspectPid|null,
                    #             tie, caught, votes:{pid->suspectPid} }
   players/{pid}/
     id, name
-    view           # 'answer'-fase: { instruction } (imposter, wijzen/aantallen)
-                   #   | { prompt, question } (niet-imposter, of imposter-antwoorden
+    view           # 'answer'-fase: { instruction }  (imposter bij wijzen/aantallen)
+                   #   | { prompt, question }  (niet-imposter; of imposter-antwoorden
                    #     met de getwiste vraag). Host schrijft; telefoon rendert dit.
-    answer         # huidige ronde: pid (wijzen) | 0..10 (aantallen) | tekst (antwoorden)
-    read           # true zodra "ok" geklikt in de 'read'-fase
+    answer         # device-modus, huidige ronde: pid | 0..10 | tekst
+    read           # device-modus: true zodra "ok" geklikt in 'read'
     vote           # 'voting': verdachte-pid (speler schrijft eigen)
 ```
 
 - In fase `answer` staat `game.question` **niet** publiek (anders leest de imposter
-  'm mee); de vraag verschijnt daar alleen in de niet-imposter-`view`. Pas in fase
-  `read` zet de host `game.question` publiek (dan mag iedereen 'm zien).
-- De **tally** tijdens `voting` berekent de host lokaal uit `players`; pas bij
+  'm mee); de vraag zit daar alleen in de niet-imposter-`view`. Publiek wordt 'ie
+  pas in `read` (device) of `shown` (fysiek).
+- **Tally** tijdens `voting` berekent de host lokaal uit `players`; pas bij
   `result` schrijft de host `game.result`.
 
-## 6. Spelverloop (fases)
+## 8. Spelverloop (fases)
 
-`lobby` (laag) → host **start** (imposter geloot, `game`-state aangemaakt) →
-per vraag de choreografie uit §3 (`answer` → `read` → `reveal`) → herhaal →
-wanneer de groep zover is: host opent **`voting`** (elke telefoon toont de namen
-behalve zichzelf → tik verdachte) → host **onthult** (`result`): echte imposter,
-meest-gestemde verdachte, en of de groep 'm pakte. Daarna nieuw spel.
+`lobby` → **setup** (§3) → host **start** (imposter geloot) → per vraag de flow uit
+§4 (device) of §5 (fysiek), afhankelijk van `modes[type]` → herhaal → host opent
+**`voting`** (elke telefoon toont de namen behalve zichzelf → tik verdachte) → host
+**onthult** (`result`). Daarna nieuw spel.
 
-## 7. Win-conditie (pure functie)
+## 9. Win-conditie (pure functie)
 
 Gegeven `votes` en `impostorPid`: `topSuspectPid` = meest gestemde (gelijkspel aan
 top → `tie=true`, `topSuspectPid=null`); `caught = !tie && topSuspectPid ===
 impostorPid`. `caught` → groep wint, anders ontsnapt de imposter.
 
-## 8. 18+ toggle
+## 10. Vragenformaat (eigen, uitbreidbaar — géén hergebruik van andere spellen)
 
-Vragen zijn **per stuk** getagd `adult: true|false` (default false). De host heeft
-een **aan/uit-schakelaar** in de setup die 18+-vragen in- of uitsluit uit de deck.
-
-## 9. Vragenformaat (eigen, uitbreidbaar — géén hergebruik van andere spellen)
-
-Mode-based; nieuwe categorieën schuiven er zo bij. Voorstel:
+Mode-based; nieuwe categorieën schuiven er zo bij. Per vraag een `adult`-vlag
+(default false) voor de 18+ toggle.
 
 ```json
 {
@@ -175,33 +202,38 @@ Mode-based; nieuwe categorieën schuiven er zo bij. Voorstel:
 
 *(Er komen later meer categorieën/vragen; die passen in dit formaat.)*
 
-## 10. Bestanden
+## 11. Bestanden
 
-- `imposter/index.html` — host + speler in één, gebruikt `lib/connect.js` en de
+- `imposter/index.html` — host + speler in één, gebruikt `lib/connect.js` +
   Firebase-config van het social-games-project.
-- `imposter/game.js` — fase-rendering per rol/type + de choreografie.
+- `imposter/game.js` — setup, fase-rendering per rol/type/modus, choreografie,
+  aftel-timer.
 - `imposter/logic.js` — pure functies: `pickImpostor`, `viewFor(type, isImposter,
   q)`, `deck(sets, {adult}, rnd)`, `tallyVotes`, `voteResult`.
 - `imposter/logic.test.js` — `node --test`.
 - `imposter/questions.json` — de mode-based vragen.
+- Aftel-geluid: via Web Audio (korte piep per tel + "go"), geen asset nodig; speelt
+  op het host-toestel (centraal).
 - Entry in de landings-`index.html`.
 
-## 11. Randgevallen (MVP)
+## 12. Randgevallen (MVP)
 
 - **Speler joint na start** → krijgt de huidige `view`; kan niet meer de imposter
-  zijn (rol is vergeven).
+  zijn.
 - **Host verlaat** → spel stopt (geen resume in MVP).
 - **AANTALLEN > 10** → geklemd op 10 ("10 of meer").
-- **Niet iedereen stemt/klikt "ok"** → host kan forceren (doorzetten) zonder te
-  tonen wie achterblijft.
+- **Niet iedereen stemt/klikt "ok"** → host kan forceren zonder te tonen wie
+  achterblijft.
+- **Klok-skew bij aftellen** → acceptabel; kleine afwijking tussen toestellen deert
+  een partyspel niet.
 
-## 12. Non-goals
+## 13. Non-goals
 
-Blijvend scorebord over meerdere spellen, per-ronde/Weerwolf-stemmen met afvallen,
-host-resume/refresh-survival, waterdichte auth-rules (route 2), geluid/media.
+Blijvend scorebord over meerdere spellen, per-ronde/Weerwolf-stemmen, host-resume/
+refresh-survival, waterdichte auth-rules (route 2), losse geluidsassets.
 
-## 13. Testen
+## 14. Testen
 
 - Pure logica volledig gedekt met `node --test` (imposter loten, `viewFor` per
   type, 18+-filtering in `deck`, tally, `voteResult`).
-- Firebase-integratie handmatig op ≥3 apparaten.
+- Firebase-integratie + aftel-sync handmatig op ≥3 apparaten.
