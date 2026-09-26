@@ -399,11 +399,19 @@ function hostBarHTML(phase) {
   let buttons = "";
 
   if (phase === "answer") {
-    buttons = mode === "physical"
-      ? `<button id="h-count" class="btn btn-pop">Start aftellen ⏱</button>`
-      : `<button id="h-read" class="btn btn-pop">Toon de vraag →</button>`;
+    if (mode === "physical") {
+      buttons = `<button id="h-count" class="btn btn-pop">Start aftellen ⏱</button>`;
+    } else {
+      const answered = roster.filter((p) => p.answer != null && p.answer !== "").length;
+      const all = roster.length > 0 && answered === roster.length;
+      buttons = `<button id="h-read" class="btn btn-pop" ${all ? "" : "disabled"}>Toon de vraag →</button>
+                 <span class="hint">${answered}/${roster.length} geantwoord</span>`;
+    }
   } else if (phase === "read") {
-    buttons = `<button id="h-reveal" class="btn btn-pop">Toon antwoorden →</button>`;
+    const readCount = roster.filter((p) => p.read).length;
+    const all = roster.length > 0 && readCount === roster.length;
+    buttons = `<button id="h-reveal" class="btn btn-pop" ${all ? "" : "disabled"}>Toon antwoorden →</button>
+               <span class="hint">${readCount}/${roster.length} gelezen</span>`;
   } else if (phase === "reveal" || phase === "shown") {
     buttons = `<button id="h-next" class="btn">Volgende vraag →</button>
                <button id="h-vote" class="btn btn-pop">Naar stemmen 🗳</button>`;
