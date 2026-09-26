@@ -197,9 +197,7 @@ body.is-playing .wrap { padding-top: 14px; }
 .lobby-games .btn { min-height: 60px; font-size: 1.1rem; }
 .resume { border-color: var(--pop); }
 .resume-line { margin: 0 0 12px; font-weight: 700; }
-.offline-link { text-align: center; margin: 18px 0 4px; }
-.offline-link a { color: var(--muted); font-weight: 700; text-decoration: none; }
-.offline-note { text-align: center; color: var(--muted); font-size: 0.8rem; margin: 0; }
+.offline-note { text-align: center; color: var(--muted); font-size: 0.8rem; margin: 8px 0 0; }
 
 /* ---------- Imposter ---------- */
 .imp-stage { display: flex; flex-direction: column; gap: 16px; min-height: 60vh; }
