@@ -281,16 +281,25 @@ function tally() {
   const deciders = roster.filter((p) => p.id !== imposterPid && p.id !== accused);
   const unanimous = !!accused && !tie && deciders.length > 0 && deciders.every((p) => p.vote === accused);
 
-  if (unanimous && accused === imposterPid) {
-    net.patchGameState(code, {
-      phase: "result",
-      result: { impostorPid, impostorName: nameLocal(imposterPid), roundsPlayed, correctByPid },
-    });
-  } else if (unanimous) {
-    net.patchGameState(code, { phase: "inconclusive", msg: `Unaniem op ${nameLocal(accused)} — maar dat was niet de imposter!` });
+  if (unanimous) {
+    net.patchGameState(code, { phase: "unanimous", accusedPid: accused, accusedName: nameLocal(accused) });
   } else {
     net.patchGameState(code, { phase: "inconclusive", msg: "De stemmen waren verdeeld." });
   }
+}
+
+// Host taps "Klopt dit?" on the unanimous screen → reveal whether the accused
+// really is the imposter.
+function revealVerdict() {
+  net.patchGameState(code, { phase: "verdict", correct: game.accusedPid === imposterPid });
+}
+
+// Host taps "Toon resultaten" after a correct unanimous accusation.
+function showResult() {
+  net.patchGameState(code, {
+    phase: "result",
+    result: { impostorPid, impostorName: nameLocal(imposterPid), roundsPlayed, correctByPid },
+  });
 }
 
 function newGame() {
@@ -359,6 +368,16 @@ function playerContentHTML(phase) {
       `<li><span class="imp-aname">${esc(a.name)}</span><span class="imp-aval">${esc(a.display)}</span></li>`).join("");
     return `<div class="imp-block"><h2 class="imp-h">Antwoorden</h2><ul class="imp-answers">${rows}</ul></div>
       <div class="imp-block">${votePanelHTML()}</div>`;
+  }
+
+  if (phase === "unanimous") {
+    return `<div class="imp-block"><p class="imp-prompt">Er is unaniem gestemd op</p><p class="imp-q">${esc(game.accusedName)}</p></div>`;
+  }
+
+  if (phase === "verdict") {
+    return game.correct
+      ? `<div class="imp-block"><h2 class="imp-h">${esc(game.accusedName)} is de imposter! 🎉</h2></div>`
+      : `<div class="imp-block"><h2 class="imp-h">${esc(game.accusedName)} is NIET de imposter</h2></div>`;
   }
 
   if (phase === "inconclusive") {
@@ -470,6 +489,12 @@ function hostBarHTML(phase) {
     const voted = roster.filter((p) => p.vote).length;
     buttons = `<button id="h-tally" class="btn btn-pop">Toon uitslag →</button>
                <span class="hint">${voted}/${roster.length} gestemd</span>`;
+  } else if (phase === "unanimous") {
+    buttons = `<button id="h-check" class="btn btn-pop">Klopt dit?</button>`;
+  } else if (phase === "verdict") {
+    buttons = game.correct
+      ? `<button id="h-result" class="btn btn-pop">Toon resultaten →</button>`
+      : `<button id="h-next" class="btn btn-pop">Speel verder →</button>`;
   } else if (phase === "inconclusive") {
     buttons = `<button id="h-next" class="btn btn-pop">Volgende vraag →</button>`;
   } else if (phase === "countdown") {
@@ -478,7 +503,7 @@ function hostBarHTML(phase) {
     buttons = `<button id="h-new" class="btn btn-pop">Nieuw spel</button>`;
   }
 
-  const info = phase !== "result"
+  const info = ["answer", "read", "reveal", "shown", "countdown"].includes(phase)
     ? `<span class="imp-round">Vraag ${game?.roundNo ?? "?"} · ${labelType(type)}${mode === "physical" ? " · fysiek" : ""}</span>`
     : "";
   const manage = phase === "result" ? "" : hostManageHTML();
@@ -495,6 +520,8 @@ function wireHostBar(phase) {
   on("h-reveal", toReveal);
   on("h-count", startCountdown);
   on("h-tally", tally);
+  on("h-check", revealVerdict);
+  on("h-result", showResult);
   on("h-next", nextRound);
   on("h-new", newGame);
   wireKick();
