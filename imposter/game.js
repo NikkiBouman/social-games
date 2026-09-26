@@ -398,9 +398,10 @@ function inputHTML(type) {
     </form>${me?.answer ? `<p class="imp-done">Verstuurd ✓</p>` : ""}`;
 }
 
+// WIJZEN answering: you may point at anyone, including yourself.
 function pickButtonsHTML(kind) {
   const names = game?.names || {};
-  return Object.keys(names).filter((id) => id !== pid).map((id) =>
+  return Object.keys(names).map((id) =>
     `<button class="imp-pick ${me?.[kind === "pick" ? "answer" : "vote"] === id ? "on" : ""}" data-${kind}="${id}">${esc(names[id])}</button>`).join("");
 }
 
@@ -467,8 +468,7 @@ function hostBarHTML(phase) {
                <span class="hint">${readCount}/${roster.length} gelezen</span>`;
   } else if (phase === "reveal" || phase === "shown") {
     const voted = roster.filter((p) => p.vote).length;
-    const all = roster.length > 0 && voted === roster.length;
-    buttons = `<button id="h-tally" class="btn btn-pop" ${all ? "" : "disabled"}>Toon uitslag →</button>
+    buttons = `<button id="h-tally" class="btn btn-pop">Toon uitslag →</button>
                <span class="hint">${voted}/${roster.length} gestemd</span>`;
   } else if (phase === "inconclusive") {
     buttons = `<button id="h-next" class="btn btn-pop">Volgende vraag →</button>`;
