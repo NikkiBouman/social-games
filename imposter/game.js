@@ -257,31 +257,39 @@ function startCountdown() {         // physical: 3-2-1, then show question
   }, 6000); // 3s countdown + 3s action
 }
 
-// Tally this round's votes. Non-imposter votes decide the outcome (the
-// imposter's own vote is ignored). Unanimous on one person → game ends and we
-// reveal whether they were the imposter. Split → next question.
+// Tally this round's votes.
+//  - The imposter's own vote is ignored.
+//  - accused = the most-voted person (among non-imposter votes).
+//  - Unanimous = everyone EXCEPT the imposter and the accused voted for the
+//    accused (the accused can't vote themselves, so their vote is ignored too).
+//  - Unanimous on the real imposter → game ends (group wins).
+//  - Unanimous on someone else → reveal "was not the imposter" and continue.
+//  - No clear/unanimous accused → "verdeeld" and continue.
 function tally() {
   roundsPlayed += 1;
-  const nonImp = roster.filter((p) => p.id !== imposterPid);
-  for (const p of nonImp) if (p.vote === imposterPid) correctByPid[p.id] = (correctByPid[p.id] || 0) + 1;
-  const targets = nonImp.map((p) => p.vote);
-  const unanimous = targets.length > 0 && targets.every((t) => t && t === targets[0]);
-  if (unanimous) {
-    const accusedPid = targets[0];
+  const voters = roster.filter((p) => p.id !== imposterPid); // ignore the imposter's vote
+  for (const p of voters) if (p.vote === imposterPid) correctByPid[p.id] = (correctByPid[p.id] || 0) + 1;
+
+  const counts = {};
+  for (const p of voters) if (p.vote) counts[p.vote] = (counts[p.vote] || 0) + 1;
+  let accused = null, max = 0, tie = false;
+  for (const [id, n] of Object.entries(counts)) {
+    if (n > max) { max = n; accused = id; tie = false; }
+    else if (n === max) { tie = true; }
+  }
+
+  const deciders = roster.filter((p) => p.id !== imposterPid && p.id !== accused);
+  const unanimous = !!accused && !tie && deciders.length > 0 && deciders.every((p) => p.vote === accused);
+
+  if (unanimous && accused === imposterPid) {
     net.patchGameState(code, {
       phase: "result",
-      result: {
-        impostorPid,
-        impostorName: nameLocal(imposterPid),
-        accusedPid,
-        accusedName: nameLocal(accusedPid),
-        caught: accusedPid === imposterPid,
-        roundsPlayed,
-        correctByPid,
-      },
+      result: { impostorPid, impostorName: nameLocal(imposterPid), roundsPlayed, correctByPid },
     });
+  } else if (unanimous) {
+    net.patchGameState(code, { phase: "inconclusive", msg: `Unaniem op ${nameLocal(accused)} — maar dat was niet de imposter!` });
   } else {
-    net.patchGameState(code, { phase: "split" });
+    net.patchGameState(code, { phase: "inconclusive", msg: "De stemmen waren verdeeld." });
   }
 }
 
@@ -353,22 +361,19 @@ function playerContentHTML(phase) {
       <div class="imp-block">${votePanelHTML()}</div>`;
   }
 
-  if (phase === "split") {
-    return `<div class="imp-block"><h2 class="imp-h">Stemmen verdeeld 🤔</h2><p>Geen unanieme keuze — de volgende vraag komt eraan.</p></div>`;
+  if (phase === "inconclusive") {
+    return `<div class="imp-block"><h2 class="imp-h">${esc(game.msg || "Volgende ronde")}</h2><p class="hint">De volgende vraag komt eraan.</p></div>`;
   }
 
   if (phase === "result" && game.result) {
     const r = game.result;
     const iAmImposter = pid === r.impostorPid;
-    const verdict = r.caught
-      ? `<p class="imp-win">🎉 Unaniem — en het klopte!</p>`
-      : `<p class="imp-lose">😈 Unaniem op ${esc(r.accusedName)}, maar fout!</p>`;
     const personal = iAmImposter
       ? `<p class="imp-personal">Jij was de imposter — je hield het <strong>${r.roundsPlayed}</strong> ronde(s) vol.</p>`
       : `<p class="imp-personal">Je had de imposter <strong>${(r.correctByPid && r.correctByPid[pid]) || 0}×</strong> goed.</p>`;
     return `<div class="imp-block">
-      <h2 class="imp-h">De imposter was <strong>${esc(r.impostorName)}</strong></h2>
-      ${verdict}
+      <h2 class="imp-h">🎉 De imposter is gepakt!</h2>
+      <p class="imp-win">Het was <strong>${esc(r.impostorName)}</strong>.</p>
       ${personal}
     </div>`;
   }
@@ -465,7 +470,7 @@ function hostBarHTML(phase) {
     const all = roster.length > 0 && voted === roster.length;
     buttons = `<button id="h-tally" class="btn btn-pop" ${all ? "" : "disabled"}>Toon uitslag →</button>
                <span class="hint">${voted}/${roster.length} gestemd</span>`;
-  } else if (phase === "split") {
+  } else if (phase === "inconclusive") {
     buttons = `<button id="h-next" class="btn btn-pop">Volgende vraag →</button>`;
   } else if (phase === "countdown") {
     buttons = `<span class="hint">Aftellen…</span>`;
