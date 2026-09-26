@@ -47,9 +47,20 @@ hergebruiken), voor schone scheiding. Dit kan alleen de gebruiker aanmaken:
 3. Web-app toevoegen → `firebaseConfig`-object kopiëren (inclusief `databaseURL`).
 4. Config aanleveren; die komt in `imposter/`.
 
-Tot de config er is wordt gebouwd met een **placeholder-config**; het werkt pas
-echt zodra de echte config erin staat. Dit is exact het stappenplan uit het
-comment-blok in Quiz's `index.html`.
+**Status: gereed.** Project `social-games-6c5d7`, Realtime Database in
+europe-west1 (test-mode). De config (public-by-design) die in `imposter/` komt:
+
+```js
+const firebaseConfig = {
+  apiKey: "AIzaSyDS_IeMYVIMpz0bVCk8Kjxn4rojYcYLV8s",
+  authDomain: "social-games-6c5d7.firebaseapp.com",
+  databaseURL: "https://social-games-6c5d7-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "social-games-6c5d7",
+  storageBucket: "social-games-6c5d7.firebasestorage.app",
+  messagingSenderId: "802002493599",
+  appId: "1:802002493599:web:ffbfb38be75d92c94cc2aa"
+};
+```
 
 ## 4. Het geheim — de kern die moet kloppen
 
@@ -176,7 +187,7 @@ host-resume & refresh-survival, dichtgetimmerde auth-rules, geluid/media.
   echte config er is.
 - Syntax-check van de losse module: `node --check imposter/game.js`.
 
-## 13. Openstaande afhankelijkheid
+## 13. Openstaande afhankelijkheden
 
-De echte `firebaseConfig` van het nieuwe project (zie §3). Tot dan placeholder;
-alles behalve de live-verbinding is te bouwen en te testen.
+Geen blokkers meer. De `firebaseConfig` is aangeleverd (§3), Realtime Database
+staat in europe-west1 (test-mode). Klaar om te bouwen.
