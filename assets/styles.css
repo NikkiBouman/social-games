@@ -250,3 +250,9 @@ body.is-playing .wrap { padding-top: 14px; }
 .imp-seg button.on { background: var(--pop); color: var(--pop-ink); }
 .imp-adult { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-weight: 700; }
 .imp-adult input { width: 20px; height: 20px; accent-color: var(--pop); }
+
+/* host player manager (kick) */
+.imp-manage { flex-basis: 100%; margin-top: 4px; }
+.imp-manage summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; font-weight: 700; text-align: center; }
+.imp-manage-list { list-style: none; padding: 0; margin: 10px 0 0; }
+.imp-manage-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 2px dashed var(--hair); font-weight: 700; }

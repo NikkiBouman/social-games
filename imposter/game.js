@@ -21,6 +21,8 @@ let meta = null;   // rooms/{code}/meta
 let game = null;   // rooms/{code}/game (host-authoritative)
 let me = null;     // rooms/{code}/players/{pid}  (my own node)
 let roster = [];   // host only: full player objects
+let kicked = false;  // this player was removed by the host
+let seenMe = false;  // have we ever seen our own node (to detect removal)
 
 // ---- host-only local state (deliberately NOT in Firebase) ----
 let deck = [];
@@ -78,7 +80,12 @@ const nameOf = (id) => (game?.names && game.names[id]) || "?";
   }
   net.onMeta(code, (m) => { meta = m; render(); });
   net.onGameState(code, (g) => { game = g; onGameChange(); render(); });
-  net.onMyNode(code, pid, (n) => { me = n; render(); });
+  net.onMyNode(code, pid, (n) => {
+    me = n;
+    if (n) seenMe = true;
+    else if (seenMe && !isHost) kicked = true;
+    render();
+  });
   if (isHost) {
     net.onRoster(code, (r) => {
       roster = r;
@@ -102,6 +109,10 @@ function onGameChange() {
 
 // ================= render =================
 function render() {
+  if (kicked) {
+    app.innerHTML = `<div class="imp-block"><h2 class="imp-h">Je bent uit de kamer gehaald</h2><p><a href="../">← Terug naar de lobby</a></p></div>`;
+    return;
+  }
   if (!meta) { app.innerHTML = `<p class="hint">Verbinden…</p>`; return; }
   const phase = game?.phase || "setup";
 
@@ -132,7 +143,7 @@ function renderHostSetup() {
     <section class="card">
       <h2>Verbonden spelers (${n})</h2>
       <ul class="player-list">
-        ${roster.map((p) => `<li><span>${esc(p.name)}</span></li>`).join("")}
+        ${roster.map((p) => `<li><span>${esc(p.name)}</span>${p.id !== pid ? `<button class="link-btn" data-kick="${p.id}">kick</button>` : ""}</li>`).join("")}
       </ul>
       <p class="hint">${n < 3 ? `Nog minstens ${3 - n} speler(s) nodig.` : "Klaar om te starten."}</p>
     </section>
@@ -157,6 +168,23 @@ function renderHostSetup() {
   const adultBox = app.querySelector("#adult");
   adultBox.addEventListener("change", () => { adult = adultBox.checked; });
   app.querySelector("#start").addEventListener("click", startGame);
+  wireKick();
+}
+
+function wireKick() {
+  app.querySelectorAll("[data-kick]").forEach((b) =>
+    b.addEventListener("click", () => net.kickPlayer(code, b.dataset.kick)));
+}
+
+// Compact player manager for the host during play (kick a stuck/left player,
+// which unblocks the "everyone answered" gate). Names only — no answer status.
+function hostManageHTML() {
+  const others = roster.filter((p) => p.id !== pid);
+  if (!others.length) return "";
+  return `<details class="imp-manage"><summary>Spelers beheren (${roster.length})</summary>
+    <ul class="imp-manage-list">
+      ${others.map((p) => `<li><span>${esc(p.name)}</span><button class="link-btn" data-kick="${p.id}">kick</button></li>`).join("")}
+    </ul></details>`;
 }
 
 // ================= host actions =================
@@ -428,7 +456,8 @@ function hostBarHTML(phase) {
   const info = phase !== "result"
     ? `<span class="imp-round">Vraag ${game?.roundNo ?? "?"} · ${labelType(type)}${mode === "physical" ? " · fysiek" : ""}</span>`
     : "";
-  return `<div class="imp-hostbar">${info}<div class="imp-hostbtns">${buttons}</div></div>`;
+  const manage = phase === "result" ? "" : hostManageHTML();
+  return `<div class="imp-hostbar">${info}<div class="imp-hostbtns">${buttons}</div>${manage}</div>`;
 }
 
 function labelType(t) {
@@ -444,6 +473,7 @@ function wireHostBar(phase) {
   on("h-vote", openVoting);
   on("h-result", reveal);
   on("h-new", newGame);
+  wireKick();
 }
 
 // ================= countdown animation =================

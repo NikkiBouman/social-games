@@ -141,7 +141,7 @@
         </section>
         <section class="card">
           <h2>Verbonden (${state.roster.length})</h2>
-          <ul class="player-list">${state.roster.map((p) => `<li><span>${esc(p.name)}</span></li>`).join("")}</ul>
+          <ul class="player-list">${state.roster.map((p) => `<li><span>${esc(p.name)}</span>${p.id !== state.pid ? `<button class="link-btn" data-kick="${p.id}">kick</button>` : ""}</li>`).join("")}</ul>
         </section>
         <section class="card">
           <h2>Kies een spel</h2>
@@ -160,6 +160,8 @@
         net.endRoom(state.code); clearSession();
         state.resume = null; state.view = "home"; render();
       });
+      app.querySelectorAll("[data-kick]").forEach((b) =>
+        b.addEventListener("click", () => net.kickPlayer(state.code, b.dataset.kick)));
     }
 
     function renderPlayerLobby() {
@@ -176,7 +178,16 @@
     }
 
     function subscribeLobby() {
-      net.onRoster(state.code, (r) => { state.roster = r; if (state.view.endsWith("lobby")) render(); });
+      net.onRoster(state.code, (r) => {
+        state.roster = r;
+        // player was kicked from the lobby → their pid is gone from the roster
+        if (state.view === "playerlobby" && state.pid && !r.some((p) => p.id === state.pid)) {
+          clearSession(); state.resume = null; state.view = "home";
+          state.error = "Je bent uit de kamer gehaald.";
+          return render();
+        }
+        if (state.view.endsWith("lobby")) render();
+      });
       net.onMeta(state.code, (m) => {
         if (m && m.phase === "ingame" && m.game && state.view.endsWith("lobby")) {
           const role = state.view === "hostlobby" ? "host" : "player";
