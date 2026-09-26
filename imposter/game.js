@@ -437,8 +437,7 @@ function hostBarHTML(phase) {
     }
   } else if (phase === "read") {
     const readCount = roster.filter((p) => p.read).length;
-    const all = roster.length > 0 && readCount === roster.length;
-    buttons = `<button id="h-reveal" class="btn btn-pop" ${all ? "" : "disabled"}>Toon antwoorden →</button>
+    buttons = `<button id="h-reveal" class="btn btn-pop">Toon antwoorden →</button>
                <span class="hint">${readCount}/${roster.length} gelezen</span>`;
   } else if (phase === "reveal" || phase === "shown") {
     buttons = `<button id="h-next" class="btn">Volgende vraag →</button>
