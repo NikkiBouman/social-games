@@ -1,0 +1,40 @@
+{
+  "wijzen": {
+    "prompt": "Wijs naar de speler waar jouw antwoord op slaat.",
+    "imposter": "Je bent de imposter. Kies een willekeurige speler en hoop op het beste.",
+    "vragen": [
+      { "t": "Met wie zou jij op een onbewoond eiland willen zitten?", "adult": false },
+      { "t": "Wie vertrouw jij met een geheim?", "adult": false },
+      { "t": "Wie is de slimste?", "adult": false },
+      { "t": "Wie kan het beste koken?", "adult": false },
+      { "t": "Wie zou nu zomaar 5 km kunnen rennen?", "adult": false },
+      { "t": "Wie heeft volgens jou de meest kinky seks?", "adult": true },
+      { "t": "Wie zal het minst vaak seks hebben?", "adult": true }
+    ]
+  },
+  "aantallen": {
+    "prompt": "Kies het getal (0–10) dat jouw antwoord is.",
+    "imposter": "Je bent de imposter. Kies een willekeurig getal (0–10) en hoop op het beste.",
+    "vragen": [
+      { "t": "Hoeveel dagen draag jij een broek voordat je 'm wast?", "adult": false },
+      { "t": "Hoe vaak douche jij per week?", "adult": false },
+      { "t": "Hoeveel boeken lees je per maand?", "adult": false },
+      { "t": "Hoe vaak poep je op een dag?", "adult": false },
+      { "t": "Hoeveel kopjes koffie drink je per dag?", "adult": false },
+      { "t": "Hoeveel boterhammen eet je op een dag?", "adult": false },
+      { "t": "Hoeveel glazen alcohol drink je per week?", "adult": false },
+      { "t": "Hoe vaak per week heb je seks?", "adult": true },
+      { "t": "Na hoeveel dates heb je seks?", "adult": true }
+    ]
+  },
+  "antwoorden": {
+    "prompt": "Vul je antwoord op de vraag in.",
+    "imposter": "Je bent de imposter. Beantwoord de vraag — maar hij heeft net een andere twist dan de echte vraag.",
+    "paren": [
+      { "echt": "Wat drink je het liefst op een borrel?", "imposter": "Wat is het eerste dat je op een dag drinkt?", "adult": false },
+      { "echt": "Wat is een sport die je niet regelmatig zou willen beoefenen?", "imposter": "Wat is de laatste sport die je (in het echt of op tv) hebt gezien?", "adult": false },
+      { "echt": "Van welk land vind je het eten het lekkerst?", "imposter": "Wat is je volgende vakantiebestemming?", "adult": false },
+      { "echt": "Wat is het beste seksstandje?", "imposter": "Als je van geslacht zou veranderen, welk standje zou je dan het liefst uitproberen?", "adult": true }
+    ]
+  }
+}
