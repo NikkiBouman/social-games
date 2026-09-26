@@ -80,8 +80,9 @@ h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 4
 .card { background: var(--surface); border: var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin-bottom: 18px; }
 .card h2 { margin: 0 0 12px; font-size: 1.05rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
 .row { display: flex; gap: 8px; align-items: center; }
-.row input[type="text"] { flex: 1; min-height: 50px; padding: 0 12px; border: var(--line); border-radius: var(--radius); font-family: inherit; font-size: 1rem; }
+.row input[type="text"] { flex: 1; min-width: 0; min-height: 50px; padding: 0 12px; border: var(--line); border-radius: var(--radius); font-family: inherit; font-size: 1rem; }
 .row input[type="text"]:focus { outline: none; box-shadow: var(--shadow-sm); }
+.btn-add .btn-icon { display: none; }
 .player-list { list-style: none; padding: 0; margin: 12px 0 0; }
 .player-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 2px dashed var(--hair); }
 .hint { color: var(--muted); font-size: 0.85rem; margin: 12px 0 0; }
@@ -90,7 +91,15 @@ h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 4
 .set-item { display: flex; align-items: center; gap: 10px; padding: 12px; border: var(--line); border-radius: var(--radius); cursor: pointer; font-weight: 700; }
 .set-item small { margin-left: auto; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
 .set-item input { width: 20px; height: 20px; accent-color: var(--pop); }
+.set-item.select-all { border-style: dashed; font-weight: 800; margin-bottom: 4px; }
 .error { color: #c02617; }
+
+/* narrow phones: collapse the "Toevoegen" button to a "+" so the name field keeps room */
+@media (max-width: 480px) {
+  .btn-add { flex: none; width: 52px; padding: 0; font-size: 1.7rem; }
+  .btn-add .btn-label { display: none; }
+  .btn-add .btn-icon { display: inline; }
+}
 
 /* ---------- Herd Mentality: playing ---------- */
 /* During play the page chrome is hidden so only the card dominates. */

@@ -83,12 +83,16 @@ function render() {
 
 function renderSetup() {
   const canStart = state.players.length >= 3 && state.selectedSetIds.length >= 1;
+  const selectedCount = sets.filter((s) => state.selectedSetIds.includes(s.id)).length;
+  const allSelected = sets.length > 0 && selectedCount === sets.length;
   app.innerHTML = `
     <section class="card">
       <h2>Spelers</h2>
       <form id="add-player" class="row">
         <input id="player-name" type="text" placeholder="Naam speler" autocomplete="off" maxlength="24">
-        <button class="btn" type="submit">Toevoegen</button>
+        <button class="btn btn-add" type="submit">
+          <span class="btn-label">Toevoegen</span><span class="btn-icon" aria-hidden="true">+</span>
+        </button>
       </form>
       <ul class="player-list">
         ${state.players.map((p) => `
@@ -110,6 +114,11 @@ function renderSetup() {
     <section class="card">
       <h2>Vragensets</h2>
       <div class="set-list">
+        <label class="set-item select-all">
+          <input type="checkbox" id="select-all-sets" ${allSelected ? "checked" : ""}>
+          <span>Alles selecteren</span>
+          <small>${selectedCount} / ${sets.length}</small>
+        </label>
         ${sets.map((s) => `
           <label class="set-item">
             <input type="checkbox" data-set="${s.id}" ${state.selectedSetIds.includes(s.id) ? "checked" : ""}>
@@ -148,6 +157,12 @@ function renderSetup() {
         : state.selectedSetIds.filter((x) => x !== id);
       save(); renderSetup();
     }));
+  const selectAll = app.querySelector("#select-all-sets");
+  selectAll.indeterminate = selectedCount > 0 && !allSelected;
+  selectAll.addEventListener("change", () => {
+    state.selectedSetIds = selectAll.checked ? sets.map((s) => s.id) : [];
+    save(); renderSetup();
+  });
   app.querySelector("#start").addEventListener("click", startGame);
 }
 
