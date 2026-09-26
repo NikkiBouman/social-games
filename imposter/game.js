@@ -6,7 +6,7 @@
 //   ?room=CODE&role=host|player&pid=PID
 
 import * as net from "../lib/connect.js";
-import { pickImpostor, buildDeck, viewFor, voteResult } from "./logic.js";
+import { pickImpostor, buildDeck, viewFor } from "./logic.js";
 
 const app = document.getElementById("app");
 const params = new URLSearchParams(location.search);
@@ -32,6 +32,8 @@ let modes = { wijzen: "device", aantallen: "device", antwoorden: "device" };
 let adult = false;
 let hostInitialized = false;
 let showTimer = null;        // physical-mode: countdown → shown
+let correctByPid = {};       // pid -> #rounds a non-imposter voted for the real imposter
+let roundsPlayed = 0;        // completed voting rounds this game
 
 // ---- countdown animation ----
 let cdTimer = null;
@@ -194,6 +196,8 @@ function startGame() {
   imposterPid = pickImpostor(ids);
   deck = buildDeck(QUESTIONS, { adult });
   roundIndex = 0;
+  correctByPid = {};
+  roundsPlayed = 0;
   if (!deck.length) { alert("Geen vragen beschikbaar met deze instellingen."); return; }
   beginRound();
 }
@@ -209,6 +213,7 @@ function beginRound() {
       view: viewFor(round, p.id === imposterPid),
       answer: null,
       read: null,
+      vote: null,
     });
   }
   const names = {};
@@ -252,30 +257,37 @@ function startCountdown() {         // physical: 3-2-1, then show question
   }, 6000); // 3s countdown + 3s action
 }
 
-function openVoting() {
-  for (const p of roster) net.writeMyNode(code, p.id, { vote: null });
-  net.patchGameState(code, { phase: "voting", question: null, answers: null });
-}
-
-function reveal() {
-  const votes = {};
-  for (const p of roster) if (p.vote) votes[p.id] = p.vote;
-  const res = voteResult(votes, imposterPid);
-  net.patchGameState(code, {
-    phase: "result",
-    result: {
-      impostorName: nameLocal(imposterPid),
-      topSuspectName: res.topSuspectPid ? nameLocal(res.topSuspectPid) : null,
-      tie: res.tie,
-      caught: res.caught,
-      votes: roster.filter((p) => p.vote).map((p) => ({ voter: p.name, suspect: nameLocal(p.vote) })),
-    },
-  });
+// Tally this round's votes. Non-imposter votes decide the outcome (the
+// imposter's own vote is ignored). Unanimous on one person → game ends and we
+// reveal whether they were the imposter. Split → next question.
+function tally() {
+  roundsPlayed += 1;
+  const nonImp = roster.filter((p) => p.id !== imposterPid);
+  for (const p of nonImp) if (p.vote === imposterPid) correctByPid[p.id] = (correctByPid[p.id] || 0) + 1;
+  const targets = nonImp.map((p) => p.vote);
+  const unanimous = targets.length > 0 && targets.every((t) => t && t === targets[0]);
+  if (unanimous) {
+    const accusedPid = targets[0];
+    net.patchGameState(code, {
+      phase: "result",
+      result: {
+        impostorPid,
+        impostorName: nameLocal(imposterPid),
+        accusedPid,
+        accusedName: nameLocal(accusedPid),
+        caught: accusedPid === imposterPid,
+        roundsPlayed,
+        correctByPid,
+      },
+    });
+  } else {
+    net.patchGameState(code, { phase: "split" });
+  }
 }
 
 function newGame() {
   hostInitialized = true;
-  imposterPid = null; deck = []; roundIndex = 0;
+  imposterPid = null; deck = []; roundIndex = 0; correctByPid = {}; roundsPlayed = 0;
   const names = {};
   for (const p of roster) names[p.id] = p.name;
   net.pushGameState(code, { phase: "setup", modes, adult, names });
@@ -330,29 +342,34 @@ function playerContentHTML(phase) {
 
   if (phase === "shown") {
     const banner = view.imposter ? "" : `<div class="imp-banner">Lees de vraag opnieuw voor eerlijkheid</div>`;
-    return `<div class="imp-block">${banner}<p class="imp-q">${esc(game.question)}</p></div>`;
+    return `<div class="imp-block">${banner}<p class="imp-q">${esc(game.question)}</p></div>
+      <div class="imp-block">${votePanelHTML()}</div>`;
   }
 
   if (phase === "reveal") {
     const rows = (game.answers || []).map((a) =>
       `<li><span class="imp-aname">${esc(a.name)}</span><span class="imp-aval">${esc(a.display)}</span></li>`).join("");
-    return `<div class="imp-block"><h2 class="imp-h">Antwoorden</h2><ul class="imp-answers">${rows}</ul></div>`;
+    return `<div class="imp-block"><h2 class="imp-h">Antwoorden</h2><ul class="imp-answers">${rows}</ul></div>
+      <div class="imp-block">${votePanelHTML()}</div>`;
   }
 
-  if (phase === "voting") {
-    if (me?.vote) return `<div class="imp-block"><h2 class="imp-h">Gestemd op ${esc(nameOf(me.vote))} ✓</h2><p class="hint">Je kunt je stem nog wijzigen.</p>${voteButtonsHTML()}</div>`;
-    return `<div class="imp-block"><h2 class="imp-h">Wie is de imposter?</h2>${voteButtonsHTML()}</div>`;
+  if (phase === "split") {
+    return `<div class="imp-block"><h2 class="imp-h">Stemmen verdeeld 🤔</h2><p>Geen unanieme keuze — de volgende vraag komt eraan.</p></div>`;
   }
 
   if (phase === "result" && game.result) {
     const r = game.result;
+    const iAmImposter = pid === r.impostorPid;
     const verdict = r.caught
-      ? `<p class="imp-win">🎉 De groep had 'm! ${esc(r.topSuspectName)} was de imposter.</p>`
-      : `<p class="imp-lose">😈 De imposter is ontsnapt!</p>`;
+      ? `<p class="imp-win">🎉 Unaniem — en het klopte!</p>`
+      : `<p class="imp-lose">😈 Unaniem op ${esc(r.accusedName)}, maar fout!</p>`;
+    const personal = iAmImposter
+      ? `<p class="imp-personal">Jij was de imposter — je hield het <strong>${r.roundsPlayed}</strong> ronde(s) vol.</p>`
+      : `<p class="imp-personal">Je had de imposter <strong>${(r.correctByPid && r.correctByPid[pid]) || 0}×</strong> goed.</p>`;
     return `<div class="imp-block">
       <h2 class="imp-h">De imposter was <strong>${esc(r.impostorName)}</strong></h2>
       ${verdict}
-      ${r.topSuspectName && !r.caught ? `<p class="hint">Meeste stemmen: ${esc(r.topSuspectName)}${r.tie ? " (gelijkspel)" : ""}</p>` : ""}
+      ${personal}
     </div>`;
   }
 
@@ -388,6 +405,11 @@ function voteButtonsHTML() {
     `<button class="imp-pick ${me?.vote === id ? "on" : ""}" data-vote="${id}">${esc(names[id])}</button>`).join("")}</div>`;
 }
 
+function votePanelHTML() {
+  const note = me?.vote ? `<p class="imp-done">Gestemd op ${esc(nameOf(me.vote))} ✓ — je kunt nog wijzigen.</p>` : "";
+  return `<h2 class="imp-h">Wie is de imposter?</h2>${voteButtonsHTML()}${note}`;
+}
+
 function submittedNote() { return me?.answer != null && me?.answer !== "" ? `<p class="imp-done">Antwoord opgeslagen ✓</p>` : ""; }
 
 function actionLabel(type) {
@@ -413,10 +435,9 @@ function wirePlayerContent(phase) {
     const ok = app.querySelector("#okread");
     if (ok) ok.addEventListener("click", () => net.writeMyNode(code, pid, { read: true }));
   }
-  if (phase === "voting") {
-    app.querySelectorAll("[data-vote]").forEach((b) =>
-      b.addEventListener("click", () => net.writeMyNode(code, pid, { vote: b.dataset.vote })));
-  }
+  // vote buttons appear on the reveal/shown screens
+  app.querySelectorAll("[data-vote]").forEach((b) =>
+    b.addEventListener("click", () => net.writeMyNode(code, pid, { vote: b.dataset.vote })));
 }
 
 // ================= host control bar =================
@@ -440,14 +461,14 @@ function hostBarHTML(phase) {
     buttons = `<button id="h-reveal" class="btn btn-pop">Toon antwoorden →</button>
                <span class="hint">${readCount}/${roster.length} gelezen</span>`;
   } else if (phase === "reveal" || phase === "shown") {
-    buttons = `<button id="h-next" class="btn">Volgende vraag →</button>
-               <button id="h-vote" class="btn btn-pop">Naar stemmen 🗳</button>`;
+    const voted = roster.filter((p) => p.vote).length;
+    const all = roster.length > 0 && voted === roster.length;
+    buttons = `<button id="h-tally" class="btn btn-pop" ${all ? "" : "disabled"}>Toon uitslag →</button>
+               <span class="hint">${voted}/${roster.length} gestemd</span>`;
+  } else if (phase === "split") {
+    buttons = `<button id="h-next" class="btn btn-pop">Volgende vraag →</button>`;
   } else if (phase === "countdown") {
     buttons = `<span class="hint">Aftellen…</span>`;
-  } else if (phase === "voting") {
-    const voted = roster.filter((p) => p.vote).length;
-    buttons = `<span class="hint">${voted}/${roster.length} gestemd</span>
-               <button id="h-result" class="btn btn-pop">Onthul 🎭</button>`;
   } else if (phase === "result") {
     buttons = `<button id="h-new" class="btn btn-pop">Nieuw spel</button>`;
   }
@@ -468,9 +489,8 @@ function wireHostBar(phase) {
   on("h-read", toRead);
   on("h-reveal", toReveal);
   on("h-count", startCountdown);
+  on("h-tally", tally);
   on("h-next", nextRound);
-  on("h-vote", openVoting);
-  on("h-result", reveal);
   on("h-new", newGame);
   wireKick();
 }

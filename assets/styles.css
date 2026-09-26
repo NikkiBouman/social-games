@@ -234,6 +234,7 @@ body.is-playing .wrap { padding-top: 14px; }
 /* result */
 .imp-win { color: var(--pop); font-weight: 800; font-size: 1.2rem; }
 .imp-lose { color: var(--pink); font-weight: 800; font-size: 1.2rem; }
+.imp-personal { font-weight: 700; margin: 10px 0 0; }
 
 /* host bar */
 .imp-hostbar { display: flex; flex-direction: column; gap: 10px; border-top: 3px dashed var(--hair); padding-top: 14px; }
