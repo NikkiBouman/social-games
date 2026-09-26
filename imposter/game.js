@@ -34,6 +34,8 @@ let hostInitialized = false;
 let showTimer = null;        // physical-mode: countdown → shown
 let correctByPid = {};       // pid -> #rounds a non-imposter voted for the real imposter
 let roundsPlayed = 0;        // completed voting rounds this game
+let draft = "";              // in-progress text answer (survives re-renders)
+let lastAnswerRound = null;  // to clear the draft when a new question starts
 
 // ---- countdown animation ----
 let cdTimer = null;
@@ -107,6 +109,10 @@ function onGameChange() {
     for (const p of roster) names[p.id] = p.name;
     net.pushGameState(code, { phase: "setup", modes, adult, names });
   }
+  if (game && game.phase === "answer" && game.roundNo !== lastAnswerRound) {
+    draft = "";
+    lastAnswerRound = game.roundNo;
+  }
 }
 
 // ================= render =================
@@ -120,12 +126,21 @@ function render() {
 
   if (isHost && phase === "setup") { renderHostSetup(); return; }
 
+  // preserve an in-progress text answer + caret across re-renders
+  const activeId = document.activeElement && document.activeElement.id;
+  const caret = activeId === "textans" ? document.activeElement.selectionStart : null;
+
   let html = playerContentHTML(phase);
   if (isHost) html += hostBarHTML(phase);
   app.innerHTML = `<section class="imp-stage">${html}</section>`;
 
   wirePlayerContent(phase);
   if (isHost) wireHostBar(phase);
+
+  if (activeId === "textans") {
+    const t = app.querySelector("#textans");
+    if (t) { t.focus(); const p = caret ?? t.value.length; try { t.setSelectionRange(p, p); } catch { /* ignore */ } }
+  }
 
   if (phase === "countdown") startCountdownTick(); else stopCountdownTick();
 }
@@ -298,7 +313,7 @@ function revealVerdict() {
 function showResult() {
   net.patchGameState(code, {
     phase: "result",
-    result: { impostorPid, impostorName: nameLocal(imposterPid), roundsPlayed, correctByPid },
+    result: { impostorPid: imposterPid, impostorName: nameLocal(imposterPid), roundsPlayed, correctByPid },
   });
 }
 
@@ -410,7 +425,7 @@ function inputHTML(type) {
     return `<div class="imp-players">${pickButtonsHTML("pick")}</div>${submittedNote()}`;
   }
   // antwoorden
-  const val = typeof me?.answer === "string" ? me.answer : "";
+  const val = (typeof me?.answer === "string" && me.answer !== "") ? me.answer : draft;
   return `<form id="textform" class="imp-textform">
       <input id="textans" type="text" maxlength="60" placeholder="Jouw antwoord" value="${esc(val)}" autocomplete="off">
       <button class="btn btn-pop" type="submit">Versturen</button>
@@ -450,11 +465,15 @@ function wirePlayerContent(phase) {
     app.querySelectorAll("[data-pick]").forEach((b) =>
       b.addEventListener("click", () => net.writeMyNode(code, pid, { answer: b.dataset.pick })));
     const form = app.querySelector("#textform");
-    if (form) form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const v = app.querySelector("#textans").value.trim();
-      if (v) net.writeMyNode(code, pid, { answer: v });
-    });
+    if (form) {
+      const ta = app.querySelector("#textans");
+      if (ta) ta.addEventListener("input", () => { draft = ta.value; });
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const v = ta.value.trim();
+        if (v) net.writeMyNode(code, pid, { answer: v });
+      });
+    }
   }
   if (phase === "read") {
     const ok = app.querySelector("#okread");
