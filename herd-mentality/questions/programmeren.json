@@ -1,0 +1,16 @@
+{
+  "id": "programmeren",
+  "naam": "Programmeren",
+  "vragen": [
+    "Linux, Windows of macOS?",
+    "Noem een programmeertaal.",
+    "Tabs of spaties?",
+    "Wat is de beste programmeertaal?",
+    "Wat is de slechtste programmeertaal?",
+    "Licht thema of donker thema in je editor?",
+    "Noem een code-editor of IDE.",
+    "Frontend of backend?",
+    "Wat is de irritantste bug om op te lossen?",
+    "Noem een tech-bedrijf."
+  ]
+}

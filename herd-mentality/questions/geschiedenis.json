@@ -2,11 +2,15 @@
   "id": "geschiedenis",
   "naam": "Geschiedenis",
   "vragen": [
-    "Noem een beroemde uitvinder.",
+    "Wie is de beste uitvind(st)er?",
+    "Wat is het gaafste bouwwerk?",
+    "Wie is de belangrijkste historische figuur?",
+    "Noem een overleden president van Amerika.",
+    "In welk decennium tussen 1900 en 2000 zou je willen leven?",
     "Wat is de belangrijkste uitvinding ooit?",
     "Noem een oude beschaving.",
-    "Welk jaartal is historisch het belangrijkst?",
-    "Wat is het bekendste bouwwerk uit de oudheid?",
-    "Wie is de belangrijkste historische figuur ooit?"
+    "Welke historische periode had de beste kleding?",
+    "Naar welke historische gebeurtenis zou je willen reizen als je erbij kon zijn?",
+    "Noem een Nederlandse koning of koningin."
   ]
 }
